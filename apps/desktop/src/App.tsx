@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { keymatch } from "keymatch";
 import { useStoreValue } from "@simplestack/store/react";
@@ -33,6 +34,24 @@ function App() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    const setup = async () => {
+      unlisten = await listen<{ path?: string }>("hubble://open-file", async (event) => {
+        const path = event.payload?.path;
+        if (path) {
+          await loadPath(path);
+        }
+      });
+    };
+    void setup();
+    return () => {
+      if (unlisten) {
+        unlisten();
+      }
+    };
   }, []);
 
   useEffect(() => {
