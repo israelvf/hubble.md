@@ -19,12 +19,16 @@ export type RolloverBoundaryState = {
 	side: CursorSide;
 } | null;
 
-const MARK_PRIORITY = ["code", "bold", "italic", "strike"] as const;
-const DELIMITER_BY_MARK: Record<string, string> = {
-	code: "`",
-	bold: "**",
-	italic: "*",
-	strike: "~~",
+const MARK_PRIORITY = ["code", "bold", "italic", "strike", "link"] as const;
+const DELIMITER_BY_MARK: Record<
+	string,
+	{ start: string; end: string } | undefined
+> = {
+	code: { start: "`", end: "`" },
+	bold: { start: "**", end: "**" },
+	italic: { start: "*", end: "*" },
+	strike: { start: "~~", end: "~~" },
+	link: { start: "[", end: "]" },
 };
 
 export const MarkdownRolloverKey = new PluginKey<RolloverBoundaryState>(
@@ -131,14 +135,14 @@ export const MarkdownRolloverExtension = Extension.create({
 function buildRolloverDecorations(state: EditorState): DecorationSet | null {
 	const active = getActiveMarkContext(state);
 	if (!active) return null;
-	const delimiter = DELIMITER_BY_MARK[active.markType.name];
-	if (!delimiter) return null;
+	const delimiters = DELIMITER_BY_MARK[active.markType.name];
+	if (!delimiters) return null;
 
 	const startWidget = Decoration.widget(
 		active.from,
 		() =>
 			createDelimiterWidget({
-				delimiter,
+				delimiter: delimiters.start,
 				markName: active.markType.name,
 				boundary: "start",
 				pos: active.from,
@@ -149,7 +153,7 @@ function buildRolloverDecorations(state: EditorState): DecorationSet | null {
 		active.to,
 		() =>
 			createDelimiterWidget({
-				delimiter,
+				delimiter: delimiters.end,
 				markName: active.markType.name,
 				boundary: "end",
 				pos: active.to,

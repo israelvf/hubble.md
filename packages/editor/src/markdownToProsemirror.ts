@@ -199,8 +199,13 @@ function inlineToPM(children: Content[]): JSONContent[] {
 				out.push({ type: "hardBreak" });
 				break;
 			case "link":
-				// StarterKit doesn’t include Link by default; drop the link mark but keep the text.
-				out.push(...inlineToPM(child.children ?? []));
+				out.push(
+					...applyMark(
+						inlineToPM(child.children ?? []),
+						"link",
+						typeof child.url === "string" ? { href: child.url } : undefined,
+					),
+				);
 				break;
 			case "image":
 				// Not supported; render alt text inline.
@@ -219,11 +224,15 @@ function inlineToPM(children: Content[]): JSONContent[] {
 
 function applyMark(
 	nodes: JSONContent[],
-	markType: "bold" | "italic" | "strike",
+	markType: "bold" | "italic" | "strike" | "link",
+	attrs?: Record<string, unknown>,
 ): JSONContent[] {
 	return nodes.map((n) => {
 		if (n.type === "text") {
-			const marks = [...(n.marks ?? []), { type: markType }];
+			const marks = [
+				...(n.marks ?? []),
+				attrs ? { type: markType, attrs } : { type: markType },
+			];
 			return { ...n, marks };
 		}
 		// For nested structures, descend if needed; most inline nodes here are text/hardBreak only.

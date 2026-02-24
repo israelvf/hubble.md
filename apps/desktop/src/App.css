@@ -129,6 +129,81 @@
 		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
 		"Courier New", monospace;
 }
+
+.ProseMirror span[data-link="true"] {
+	color: #565656;
+	text-decoration: underline;
+}
+
+.link-popover {
+	position: absolute;
+	inline-size: 300px;
+	border-radius: 4px;
+	background-color: rgba(39, 170, 58, 0.98);
+	box-shadow:
+		0 8px 2px 0 rgba(91, 123, 91, 0.01),
+		0 5px 2px 0 rgba(91, 123, 91, 0.04),
+		0 3px 2px 0 rgba(91, 123, 91, 0.14),
+		0 1px 1px 0 rgba(91, 123, 91, 0.24),
+		0 0 1px 0 rgba(91, 123, 91, 0.28);
+	padding-block-end: 2px;
+	z-index: 2;
+}
+
+.link-popover-inner {
+	display: flex;
+	align-items: center;
+	gap: 0.2rem;
+	background: #fff;
+	border-radius: 2px;
+	box-shadow:
+		0 -6px 3px 0 rgba(79, 95, 81, 0) inset,
+		0 -4px 3px 0 rgba(79, 95, 81, 0.01) inset,
+		0 -2px 2px 0 rgba(79, 95, 81, 0.05) inset,
+		0 -1px 2px 0 rgba(79, 95, 81, 0.09) inset,
+		0 0 1px 0 rgba(79, 95, 81, 0.1) inset;
+}
+
+.link-input-container {
+	position: relative;
+	flex: 1;
+}
+
+.link-input-container input {
+	inline-size: 100%;
+	border: none;
+	outline: none;
+	padding-inline: 0.4rem;
+	padding-block: 0.35rem;
+	background-color: transparent;
+}
+
+.link-tab-label {
+	position: absolute;
+	inset-inline-end: 1%;
+	inset-block: 10%;
+	font-size: 0.7rem;
+	font-family:
+		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+		"Courier New", monospace;
+	color: #707170;
+	background-color: #eff3f0;
+	padding-inline: 4px;
+	padding-block: 2px;
+	border-radius: 2px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.link-popover button {
+	border: none;
+	background: #28c840;
+	color: #fff;
+	border-radius: 0 2px 2px 0;
+	padding-inline: 0.6rem;
+	margin-block: -2px;
+}
 .pm-virtual-cursor {
 	position: absolute;
 	border-radius: 4px;

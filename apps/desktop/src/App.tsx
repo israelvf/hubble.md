@@ -1,4 +1,5 @@
 import {
+	LinkExtension,
 	listExtensions,
 	MarkdownRolloverExtension,
 	markdownToTiptapDoc,
@@ -14,6 +15,8 @@ import StarterKit from "@tiptap/starter-kit";
 import { keymatch } from "keymatch";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { createAppMenu } from "./appMenu";
+import { LinkPopover } from "./editor/LinkPopover";
+import { SmartLinkExtension } from "./editor/SmartLinkExtension";
 import { VirtualCursor } from "./editor/VirtualCursor";
 import { loadPath, savePathContent, viewerStore } from "./store";
 import "./App.css";
@@ -153,6 +156,8 @@ function MarkdownEditor({
 			StarterKit.configure({
 				listItem: false,
 			}),
+			LinkExtension,
+			SmartLinkExtension,
 			MarkdownRolloverExtension,
 			...listExtensions,
 			TaskItem.configure({
@@ -192,6 +197,7 @@ function MarkdownEditor({
 	return (
 		<div className="editorRoot" ref={editorRootRef}>
 			<EditorContent editor={editor} />
+			<LinkPopover editor={editor} containerRef={editorRootRef} />
 			<VirtualCursor editor={editor} containerRef={editorRootRef} />
 		</div>
 	);

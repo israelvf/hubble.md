@@ -1,5 +1,11 @@
 export { FakeSelectionExtension } from "./FakeSelectionExtension";
 export {
+	createLinkMark,
+	getActiveLinkRange,
+	getLinkHrefFromAttrs,
+	LinkExtension,
+} from "./Link";
+export {
 	ListAutoJoinExtension,
 	ListItemExtension,
 	ListToggleExtension,

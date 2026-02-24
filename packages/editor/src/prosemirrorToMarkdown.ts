@@ -79,6 +79,22 @@ function blockToMarkdown(node: JSONContent): string {
 	}
 }
 
+function getLinkHref(node: JSONContent | undefined): string | null {
+	if (!node?.marks) return null;
+	const linkMark = node.marks.find((mark) => mark.type === "link");
+	if (!linkMark) return null;
+	const href = (linkMark.attrs as { href?: unknown } | undefined)?.href;
+	return typeof href === "string" ? href : null;
+}
+
+function removeLinkMark(node: JSONContent): JSONContent {
+	if (!node.marks) return node;
+	return {
+		...node,
+		marks: node.marks.filter((mark) => mark.type !== "link"),
+	};
+}
+
 function listItemToMarkdown(item: JSONContent, number?: number): string {
 	if (item.type !== "listItem") return "";
 
@@ -112,7 +128,25 @@ function listItemToMarkdown(item: JSONContent, number?: number): string {
 }
 
 function inlineToMarkdown(nodes: JSONContent[]): string {
-	return nodes.map(nodeToMarkdown).join("");
+	let result = "";
+	for (let i = 0; i < nodes.length; ) {
+		const href = getLinkHref(nodes[i]);
+		if (!href) {
+			result += nodeToMarkdown(nodes[i]);
+			i += 1;
+			continue;
+		}
+
+		let j = i;
+		const grouped: JSONContent[] = [];
+		while (j < nodes.length && getLinkHref(nodes[j]) === href) {
+			grouped.push(removeLinkMark(nodes[j]));
+			j += 1;
+		}
+		result += `[${grouped.map(nodeToMarkdown).join("")}](${href})`;
+		i = j;
+	}
+	return result;
 }
 
 function nodeToMarkdown(node: JSONContent): string {
@@ -138,6 +172,8 @@ function nodeToMarkdown(node: JSONContent): string {
 						break;
 					case "strike":
 						text = `~~${text}~~`;
+						break;
+					case "link":
 						break;
 				}
 			}
