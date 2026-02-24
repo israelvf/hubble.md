@@ -1,0 +1,65 @@
+/*
+ * Toast theme tokens.
+ *
+ * Override these variables in a parent selector (e.g. `.dark`) to re-theme
+ * every toast without touching component code.
+ */
+:root {
+	--toast-bg: #ffffff;
+	--toast-fg: #111827;
+	--toast-border: #e5e7eb;
+	--toast-radius: 0.5rem;
+	--toast-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+	--toast-font-size: 0.875rem;
+	--toast-action-bg: #111827;
+	--toast-action-fg: #ffffff;
+}
+
+/* Dark-mode overrides (activate via .dark on <html> or a parent) */
+.dark {
+	--toast-bg: #1f2937;
+	--toast-fg: #f9fafb;
+	--toast-border: #374151;
+	--toast-shadow: 0 4px 12px rgba(0, 0, 0, 0.32);
+	--toast-action-bg: #f9fafb;
+	--toast-action-fg: #111827;
+}
+
+/*
+ * Apply the tokens to the Sonner-rendered toasts.
+ * Using !important where needed so our tokens beat Sonner's inline defaults.
+ */
+.hubble-toast {
+	background: var(--toast-bg) !important;
+	color: var(--toast-fg) !important;
+	border: 1px solid var(--toast-border) !important;
+	border-radius: var(--toast-radius) !important;
+	box-shadow: var(--toast-shadow) !important;
+	font-size: var(--toast-font-size) !important;
+}
+
+.hubble-toast-title {
+	color: var(--toast-fg) !important;
+	font-weight: 600;
+}
+
+.hubble-toast-description {
+	color: var(--toast-fg) !important;
+	opacity: 0.75;
+}
+
+.hubble-toast-action {
+	background: var(--toast-action-bg) !important;
+	color: var(--toast-action-fg) !important;
+	border-radius: 0.375rem;
+	padding-inline: 0.75rem;
+	padding-block: 0.375rem;
+	font-weight: 500;
+}
+
+.hubble-toast-cancel {
+	border: 1px solid var(--toast-border) !important;
+	border-radius: 0.375rem;
+	padding-inline: 0.75rem;
+	padding-block: 0.375rem;
+}

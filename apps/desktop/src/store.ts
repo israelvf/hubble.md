@@ -1,5 +1,6 @@
 import { type StoreMiddleware, store } from "@simplestack/store";
 import { invoke } from "@tauri-apps/api/core";
+import { toast } from "sonner";
 
 type ViewerStatus = "idle" | "loading" | "ready" | "error";
 
@@ -70,6 +71,7 @@ export async function savePathContent(path: string, content: string) {
 		await invoke("write_file_text", { path, content });
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
+		toast.error("Failed to save file", { description: message });
 		viewerStore.set((current) => {
 			if (current.currentPath !== path) return current;
 			return {
@@ -103,6 +105,7 @@ export async function loadPath(path: string) {
 		}));
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
+		toast.error("Failed to open file", { description: message });
 		viewerStore.set((current) => ({
 			...current,
 			currentPath: null,
