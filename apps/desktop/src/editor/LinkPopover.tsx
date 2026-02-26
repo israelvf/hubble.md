@@ -1,3 +1,10 @@
+import {
+	computePosition,
+	flip,
+	offset,
+	shift,
+	type VirtualElement,
+} from "@floating-ui/dom";
 import { getActiveLinkRange } from "@hubble.md/editor";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { Editor } from "@tiptap/core";
@@ -75,8 +82,8 @@ export function LinkPopover({
 	editor: Editor | null;
 	containerRef: RefObject<HTMLDivElement | null>;
 }) {
-	const [anchorLeft, setAnchorLeft] = useState(0);
-	const [top, setTop] = useState(0);
+	const [floatingX, setFloatingX] = useState(0);
+	const [floatingY, setFloatingY] = useState(0);
 	const [hrefValue, setHrefValue] = useState("");
 	const [activeLink, setActiveLink] = useState<{
 		from: number;
@@ -88,7 +95,8 @@ export function LinkPopover({
 		INITIAL_MACHINE_STATE,
 	);
 	const inputRef = useRef<HTMLInputElement | null>(null);
-	const popoverWidth = machineState.mode === "preview" ? 165 : 238;
+	const popoverRef = useRef<HTMLDivElement | null>(null);
+	const positionUpdateRef = useRef<(() => void) | null>(null);
 
 	useEffect(() => {
 		if (!editor) return;
@@ -100,23 +108,43 @@ export function LinkPopover({
 			dispatch({ type: "LINK_SESSION_CHANGED", activeKey: nextActiveKey });
 			const container = containerRef.current;
 			if (!container || !link) return;
-			const coords = editor.view.coordsAtPos(editor.state.selection.from);
-			const containerRect = container.getBoundingClientRect();
-			const inlinePadding = 8;
-			const minCenter = inlinePadding + popoverWidth / 2;
-			const maxCenter = containerRect.width - inlinePadding - popoverWidth / 2;
-			const desiredCenter =
-				(coords.left + coords.right) / 2 - containerRect.left;
-			const clampedCenter = Math.max(
-				minCenter,
-				Math.min(desiredCenter, maxCenter),
-			);
-			const desiredTop = coords.top - containerRect.top - 38;
-			setAnchorLeft(clampedCenter);
-			setTop(
-				desiredTop < 0 ? coords.bottom - containerRect.top + 8 : desiredTop,
-			);
+			const floatingEl = popoverRef.current;
+			if (!floatingEl) return;
+			const selectionPos = editor.state.selection.from;
+			const reference: VirtualElement = {
+				contextElement: container,
+				getBoundingClientRect() {
+					const coords = editor.view.coordsAtPos(selectionPos);
+					return {
+						x: coords.left,
+						y: coords.top,
+						left: coords.left,
+						top: coords.top,
+						right: coords.right,
+						bottom: coords.bottom,
+						width: coords.right - coords.left,
+						height: coords.bottom - coords.top,
+						toJSON() {
+							return this;
+						},
+					};
+				},
+			};
+
+			void computePosition(reference, floatingEl, {
+				strategy: "fixed",
+				placement: "top",
+				middleware: [
+					offset(4),
+					flip({ fallbackPlacements: ["bottom"] }),
+					shift({ padding: 8 }),
+				],
+			}).then(({ x, y }) => {
+				setFloatingX(x);
+				setFloatingY(y);
+			});
 		};
+		positionUpdateRef.current = update;
 
 		update();
 		editor.on("selectionUpdate", update);
@@ -127,6 +155,7 @@ export function LinkPopover({
 		window.addEventListener("scroll", update, true);
 
 		return () => {
+			positionUpdateRef.current = null;
 			editor.off("selectionUpdate", update);
 			editor.off("transaction", update);
 			editor.off("focus", update);
@@ -134,7 +163,7 @@ export function LinkPopover({
 			window.removeEventListener("resize", update);
 			window.removeEventListener("scroll", update, true);
 		};
-	}, [editor, containerRef, popoverWidth]);
+	}, [editor, containerRef]);
 
 	useEffect(() => {
 		const onFocusRequest = () => {
@@ -153,6 +182,7 @@ export function LinkPopover({
 	}, []);
 
 	useEffect(() => {
+		positionUpdateRef.current?.();
 		if (machineState.mode !== "actions") return;
 		queueMicrotask(() => {
 			inputRef.current?.focus();
@@ -232,11 +262,11 @@ export function LinkPopover({
 
 	return (
 		<div
-			className="absolute z-[2]"
+			ref={popoverRef}
+			className="fixed z-[2]"
 			style={{
-				insetInlineStart: `${anchorLeft}px`,
-				insetBlockStart: `${top}px`,
-				transform: "translateX(-50%)",
+				insetInlineStart: `${floatingX}px`,
+				insetBlockStart: `${floatingY}px`,
 			}}
 		>
 			{machineState.mode === "preview" ? (

@@ -14,6 +14,9 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@floating-ui/dom':
+        specifier: ^1.7.5
+        version: 1.7.5
       '@hubble.md/editor':
         specifier: workspace:*
         version: link:../../packages/editor
@@ -3371,16 +3374,13 @@ snapshots:
   '@floating-ui/core@1.7.4':
     dependencies:
       '@floating-ui/utils': 0.2.10
-    optional: true
 
   '@floating-ui/dom@1.7.5':
     dependencies:
       '@floating-ui/core': 1.7.4
       '@floating-ui/utils': 0.2.10
-    optional: true
 
-  '@floating-ui/utils@0.2.10':
-    optional: true
+  '@floating-ui/utils@0.2.10': {}
 
   '@iconify-json/mingcute@1.2.7':
     dependencies:

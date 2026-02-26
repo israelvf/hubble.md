@@ -10,13 +10,14 @@
 		"tauri": "tauri"
 	},
 	"dependencies": {
+		"@floating-ui/dom": "^1.7.5",
 		"@hubble.md/editor": "workspace:*",
 		"@simplestack/store": "^0.7.5",
 		"@tauri-apps/api": "^2",
 		"@tauri-apps/plugin-dialog": "^2.6.0",
 		"@tauri-apps/plugin-opener": "^2",
-		"@tiptap/extension-list": "^3.4.2",
 		"@tiptap/core": "^3.4.3",
+		"@tiptap/extension-list": "^3.4.2",
 		"@tiptap/pm": "^3.3.0",
 		"@tiptap/react": "^3.3.0",
 		"@tiptap/starter-kit": "^3.3.0",
