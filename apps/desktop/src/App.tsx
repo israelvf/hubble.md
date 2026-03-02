@@ -138,7 +138,6 @@ function App() {
 	);
 }
 const SAVE_DEBOUNCE_MS = 120;
-const DEBUG_IMAGE_SERIALIZE = true;
 
 function MarkdownEditor({
 	path,
@@ -175,18 +174,6 @@ function MarkdownEditor({
 			const markdown = tiptapDocToMarkdown(
 				currentEditor.getJSON() as JSONContent,
 			);
-			if (DEBUG_IMAGE_SERIALIZE) {
-				const imageNodes = (currentEditor.getJSON() as JSONContent).content?.filter(
-					(node) => node.type === "image",
-				);
-				console.info("[imageSerialize] onUpdate", {
-					path,
-					imageNodeCount: imageNodes?.length ?? 0,
-					imageNodeSrcs:
-						imageNodes?.map((node) => String(node.attrs?.src ?? "")) ?? [],
-					markdownSnippet: markdown.slice(0, 240),
-				});
-			}
 			latestMarkdownRef.current = markdown;
 
 			if (saveTimerRef.current !== null) {
@@ -200,14 +187,14 @@ function MarkdownEditor({
 			attributes: {
 				class: "editorInput",
 			},
-			handlePaste: (_view, event) => {
-				const items = event.clipboardData?.items;
-				const hasImage = Boolean(
-					items && Array.from(items).some((item) => item.type.startsWith("image/")),
-				);
-				if (!hasImage) return false;
-				void handleImagePaste({ editor, notePath: path, event });
-				return true;
+			handlePaste: (_view, event): boolean => {
+				const currentEditor = editor;
+				if (!currentEditor) return false;
+				return handleImagePaste({
+					editor: currentEditor,
+					notePath: path,
+					event,
+				});
 			},
 		},
 	});

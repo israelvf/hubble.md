@@ -5,24 +5,17 @@ import { toast } from "sonner";
 type PersistPastedImageResponse = {
 	relativeMarkdownPath?: string;
 	relative_markdown_path?: string;
-	deduped?: boolean;
 };
 
-export async function handleImagePaste({
+async function persistAndInsertImage({
 	editor,
 	notePath,
-	event,
+	imageFile,
 }: {
-	editor: Editor | null;
+	editor: Editor;
 	notePath: string;
-	event: ClipboardEvent;
-}): Promise<boolean> {
-	const items = event.clipboardData?.items;
-	if (!items || !editor) return false;
-	const imageItem = Array.from(items).find((item) => item.type.startsWith("image/"));
-	const imageFile = imageItem?.getAsFile();
-	if (!imageFile) return false;
-	event.preventDefault();
+	imageFile: File;
+}) {
 
 	try {
 		const bytes = Array.from(new Uint8Array(await imageFile.arrayBuffer()));
@@ -44,10 +37,28 @@ export async function handleImagePaste({
 		if (!inserted) {
 			throw new Error("TipTap rejected image insertion at current selection.");
 		}
-		return true;
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		toast.error("Failed to paste image", { description: message });
-		return true;
 	}
+}
+
+export function handleImagePaste({
+	editor,
+	notePath,
+	event,
+}: {
+	editor: Editor | null;
+	notePath: string;
+	event: ClipboardEvent;
+}): boolean {
+	if (!editor) return false;
+	const items = event.clipboardData?.items;
+	if (!items) return false;
+	const imageItem = Array.from(items).find((item) => item.type.startsWith("image/"));
+	const imageFile = imageItem?.getAsFile();
+	if (!imageFile) return false;
+	event.preventDefault();
+	void persistAndInsertImage({ editor, notePath, imageFile });
+	return true;
 }

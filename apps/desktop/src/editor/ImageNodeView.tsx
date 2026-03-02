@@ -1,7 +1,6 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { type NodeViewProps, NodeViewWrapper } from "@tiptap/react";
-import { useEffect, useMemo, useState } from "react";
-const DEBUG_IMAGE_VIEW = true;
+import { useEffect, useState } from "react";
 
 function dirname(filePath: string): string {
 	const normalized = filePath.split("\\").join("/");
@@ -39,41 +38,20 @@ export function ImageNodeView({
 	notePath,
 	selected,
 }: NodeViewProps & { notePath: string }) {
-	const rawSrc = useMemo(() => String(node.attrs.src ?? ""), [node.attrs.src]);
+	const rawSrc = String(node.attrs.src ?? "");
 	const [resolvedSrc, setResolvedSrc] = useState(rawSrc);
 
 	useEffect(() => {
-		let cancelled = false;
-		const run = async () => {
-			if (DEBUG_IMAGE_VIEW) {
-				console.info("[imageView] resolve start", {
-					rawSrc,
-					notePath,
-				});
-			}
-			if (rawSrc.trim().length === 0) {
-				if (!cancelled) setResolvedSrc("");
-				return;
-			}
-			if (!isResolvableLocalPath(rawSrc)) {
-				if (!cancelled) setResolvedSrc(rawSrc);
-				return;
-			}
-			const absolutePath = joinToAbsolutePath(dirname(notePath), rawSrc);
-			const url = convertFileSrc(absolutePath);
-			if (DEBUG_IMAGE_VIEW) {
-				console.info("[imageView] resolved local src", {
-					rawSrc,
-					absolutePath,
-					url,
-				});
-			}
-			if (!cancelled) setResolvedSrc(url);
-		};
-		void run();
-		return () => {
-			cancelled = true;
-		};
+		if (rawSrc.trim().length === 0) {
+			setResolvedSrc("");
+			return;
+		}
+		if (!isResolvableLocalPath(rawSrc)) {
+			setResolvedSrc(rawSrc);
+			return;
+		}
+		const absolutePath = joinToAbsolutePath(dirname(notePath), rawSrc);
+		setResolvedSrc(convertFileSrc(absolutePath));
 	}, [rawSrc, notePath]);
 
 	return (
@@ -84,21 +62,6 @@ export function ImageNodeView({
 					alt={node.attrs.alt || ""}
 					title={node.attrs.title || ""}
 					className={selected ? "outline-2 outline-blue-400" : ""}
-					onLoad={(event) => {
-						if (DEBUG_IMAGE_VIEW) {
-							console.info("[imageView] load ok", {
-								resolvedSrc,
-								naturalWidth: event.currentTarget.naturalWidth,
-								naturalHeight: event.currentTarget.naturalHeight,
-							});
-						}
-					}}
-					onError={(event) => {
-						console.error("[imageView] load failed", {
-							resolvedSrc,
-							currentSrc: event.currentTarget.currentSrc,
-						});
-					}}
 				/>
 			) : null}
 		</NodeViewWrapper>

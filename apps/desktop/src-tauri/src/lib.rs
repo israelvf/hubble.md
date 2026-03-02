@@ -26,11 +26,10 @@ fn set_pending_open_path(path: String) {
 fn take_pending_open_path() -> Option<String> {
     pending_open_path().lock().ok().and_then(|mut guard| guard.take())
 }
-fn path_to_string(path: &PathBuf) -> String {
+fn path_to_os_string(path: &Path) -> String {
     path.as_os_str().to_string_lossy().into_owned()
 }
-
-fn path_to_markdown_string(path: &Path) -> String {
+fn path_to_markdown_link(path: &Path) -> String {
     path.as_os_str().to_string_lossy().replace('\\', "/")
 }
 
@@ -42,7 +41,7 @@ where
     args.into_iter().find_map(|arg| {
         let path = PathBuf::from(arg.as_ref());
         if path.is_file() {
-            Some(path_to_string(&path))
+            Some(path_to_os_string(&path))
         } else {
             None
         }
@@ -195,7 +194,7 @@ fn persist_pasted_image(
         })?;
 
     Ok(PersistPastedImageOutput {
-        relative_markdown_path: path_to_markdown_string(relative_image_path),
+        relative_markdown_path: path_to_markdown_link(relative_image_path),
         deduped,
     })
 }
@@ -231,7 +230,7 @@ pub fn run() {
         if let tauri::RunEvent::Opened { urls } = event {
             for url in urls {
                 if let Ok(path) = url.to_file_path() {
-                    let path_string = path_to_string(&path);
+                    let path_string = path_to_os_string(&path);
                     set_pending_open_path(path_string.clone());
                     let _ = app_handle.emit(
                         "hubble://open-file",
