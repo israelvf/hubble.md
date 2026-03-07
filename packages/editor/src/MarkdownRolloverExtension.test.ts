@@ -121,4 +121,29 @@ describe("markdown rollover esc-only behavior", () => {
 		expect(atStart.canEscapeBoundary).toBe(false);
 		expect(atEnd.canEscapeBoundary).toBe(true);
 	});
+
+	it("can escape stored marks on an empty line (no boundary)", () => {
+		const emptyDoc = schema.node("doc", null, [schema.node("paragraph", null)]);
+		const base = EditorState.create({
+			schema,
+			doc: emptyDoc,
+			selection: TextSelection.create(emptyDoc, 1),
+		});
+		const withBold = base.apply(
+			base.tr.addStoredMark(schema.marks.bold.create()),
+		);
+		const caret = getCaretFormattingState(withBold);
+		expect(caret.activeMarkNames).toContain("bold");
+		expect(caret.canEscapeBoundary).toBe(true);
+	});
+
+	it("cannot escape on empty line with no stored marks", () => {
+		const emptyDoc = schema.node("doc", null, [schema.node("paragraph", null)]);
+		const state = EditorState.create({
+			schema,
+			doc: emptyDoc,
+			selection: TextSelection.create(emptyDoc, 1),
+		});
+		expect(getCaretFormattingState(state).canEscapeBoundary).toBe(false);
+	});
 });
