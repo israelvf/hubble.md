@@ -70,7 +70,7 @@ function WebImageNodeView({ node, selected, updateAttributes }: NodeViewProps) {
 	const frameStyle = hasMeasuredFrame
 		? ({
 				inlineSize: `${width}px`,
-				blockSize: `${height}px`,
+				aspectRatio: `${width} / ${height}`,
 			} satisfies CSSProperties)
 		: undefined;
 
