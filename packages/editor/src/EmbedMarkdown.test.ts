@@ -5,7 +5,7 @@ import { tiptapDocToMarkdown } from "./prosemirrorToMarkdown";
 describe("embed markdown conversion", () => {
 	it("parses an embed custom element into an embed node", () => {
 		const doc = markdownToTiptapDoc(
-			"# Roadmap\n\n<embed-kanban board=\"roadmap\"></embed-kanban>",
+			'# Roadmap\n\n<embed-kanban board="roadmap"></embed-kanban>',
 		);
 
 		expect(doc.content?.[1]).toEqual({

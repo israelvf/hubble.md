@@ -34,7 +34,9 @@ function blockToPM(node: Content): JSONContent[] {
 			if (maybeImage?.type === "image") {
 				return imageToPM(maybeImage);
 			}
-			const paragraphHtml = node.children.every((child) => child.type === "html")
+			const paragraphHtml = node.children.every(
+				(child) => child.type === "html",
+			)
 				? node.children.map((child) => child.value).join("")
 				: null;
 			if (paragraphHtml) {

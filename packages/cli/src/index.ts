@@ -16,6 +16,7 @@ import {
 } from "@hubble.md/sync";
 import { createNodeFileSystem } from "@hubble.md/sync/node";
 import chokidar from "chokidar";
+import { buildEmbed } from "./embedBuild.js";
 
 const fs = createNodeFileSystem();
 
@@ -44,6 +45,16 @@ async function main() {
 
 	if (parsed.help) {
 		printHelp(parsed);
+		return;
+	}
+
+	if (parsed.command === "embed") {
+		if (parsed.extraArgs[0] !== "build" || parsed.extraArgs.length !== 2) {
+			printUsage();
+			process.exitCode = 1;
+			return;
+		}
+		await buildEmbed(parsed.workspacePath, parsed.extraArgs[1]);
 		return;
 	}
 
@@ -394,9 +405,11 @@ function printHelp(args: CliArgs) {
 
 function printRootHelp() {
 	console.log("Usage:");
+	console.log("  hubble [--cwd path] embed build <name>");
 	console.log("  hubble [--cwd path] cloud <command>");
 	console.log("");
 	console.log("Commands:");
+	console.log("  embed    Build a workspace embed");
 	console.log("  cloud    Manage Cloud Sync");
 }
 
@@ -456,6 +469,7 @@ function printDisconnectHelp() {
 
 function printUsage() {
 	console.error("Usage:");
+	console.error("  hubble [--cwd path] embed build <name>");
 	console.error("  hubble [--cwd path] cloud create --name name [--url url]");
 	console.error(
 		"  hubble [--cwd path] cloud connect (--name name|--id id) [--url url]",

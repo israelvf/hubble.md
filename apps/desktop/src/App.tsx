@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Sidebar } from "./components/Sidebar";
 import { Toolbar } from "./components/Toolbar";
 import { desktopApi } from "./desktopApi";
-import { EmbedExtension } from "./editor/EmbedExtension";
+import { createEmbedExtension } from "./editor/EmbedExtension";
 import { handleImageDrop, handleImagePaste } from "./editor/handleImagePaste";
 import { createImageExtension } from "./editor/ImageExtension";
 import { createMarkdownFile } from "./fileActions";
@@ -326,7 +326,10 @@ function MarkdownEditor({
 			path={path}
 			initialMarkdown={initialMarkdown}
 			wikiTargets={wikiTargets}
-			extensions={[createImageExtension(path), EmbedExtension]}
+			extensions={[
+				createImageExtension(path),
+				createEmbedExtension(workspace.workspacePath),
+			]}
 			onPaste={(editor, event) => handleImagePaste({ editor, event })}
 			onDrop={(editor, event) => handleImageDrop({ editor, event })}
 			onLocalChange={updateEditorContent}
