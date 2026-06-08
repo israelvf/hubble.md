@@ -43,6 +43,8 @@ const updateFeedUrl = process.env.HUBBLE_DESKTOP_UPDATE_URL;
 // Check every 4 hours after the initial packaged-app update check.
 const updateCheckIntervalMs = 4 * 60 * 60 * 1000;
 
+app.setName("Hubble");
+
 if (isDev && process.env.HUBBLE_DESKTOP_ENABLE_CDP === "1") {
 	app.commandLine.appendSwitch("remote-debugging-address", "127.0.0.1");
 	app.commandLine.appendSwitch("remote-debugging-port", debugPort);
