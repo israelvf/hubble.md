@@ -171,7 +171,7 @@ export async function savePathContent(
 			const nextCurrent = viewerStore.get();
 			if (nextCurrent.currentPath !== path) return;
 			const action = classifyFileChange({
-				editorContent: content,
+				editorContent: nextCurrent.content,
 				baseline: getBaseline(nextCurrent),
 				diskContent: currentDiskContent,
 			});
@@ -192,9 +192,22 @@ export async function savePathContent(
 		touchFile(path);
 		viewerStore.set((state) => {
 			if (state.currentPath !== path) return state;
+			if (!force && state.externalChange.kind === "conflict") return state;
+			// Only write the saved text back into live editor content if the user
+			// has not typed more while the save was in flight. Otherwise, just
+			// move the saved baseline forward and keep the newer editor text.
+			if (state.content === content) {
+				return {
+					...state,
+					...cleanFileState(content),
+				};
+			}
 			return {
 				...state,
-				...cleanFileState(content),
+				diskContent: content,
+				externalChange: { kind: "none" },
+				status: "ready",
+				error: null,
 			};
 		});
 	} catch (err) {
