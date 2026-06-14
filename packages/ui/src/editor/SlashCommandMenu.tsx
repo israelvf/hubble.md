@@ -10,10 +10,10 @@ import {
 	useState,
 } from "react";
 import MingcuteBorderHorizontalLine from "~icons/mingcute/border-horizontal-line";
-import MingcuteCheck2Line from "~icons/mingcute/check-2-line";
 import MingcuteHeading1Line from "~icons/mingcute/heading-1-line";
 import MingcuteHeading2Line from "~icons/mingcute/heading-2-line";
 import MingcuteHeading3Line from "~icons/mingcute/heading-3-line";
+import MingcuteListCheck2Line from "~icons/mingcute/list-check-2-line";
 import MingcuteListCheckLine from "~icons/mingcute/list-check-line";
 import MingcuteListOrderedLine from "~icons/mingcute/list-ordered-line";
 import MingcuteQuoteLeftLine from "~icons/mingcute/quote-left-line";
@@ -98,7 +98,7 @@ const SLASH_COMMANDS: SlashCommand[] = [
 		title: "To-do list",
 		description: "Create a task list",
 		aliases: ["todo", "task", "check", "checkbox"],
-		icon: MingcuteCheck2Line,
+		icon: MingcuteListCheck2Line,
 	},
 	{
 		kind: "blockquote",
