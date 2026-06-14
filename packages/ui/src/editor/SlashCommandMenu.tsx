@@ -256,7 +256,6 @@ export function SlashCommandMenu({
 				<Command.List className="max-h-64 overflow-y-auto p-1">
 					{visibleCommands.map((command) => {
 						const Icon = command.icon;
-						const isSelected = activeKind === command.kind;
 						return (
 							<Command.Item
 								key={command.kind}
@@ -274,7 +273,6 @@ export function SlashCommandMenu({
 								className={cn(
 									"flex min-w-0 cursor-default items-center gap-2 rounded-[calc(var(--radius)-2px)] px-2 py-1.5 text-start text-[11px] leading-[15px] outline-hidden",
 									"data-[selected=true]:bg-muted data-[selected=true]:text-foreground",
-									isSelected && "bg-muted text-foreground",
 								)}
 							>
 								<span className="flex size-4 shrink-0 items-center justify-center text-muted-foreground">

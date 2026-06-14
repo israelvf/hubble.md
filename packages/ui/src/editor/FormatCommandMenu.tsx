@@ -255,20 +255,8 @@ export function FormatCommandMenu({
 						</div>
 					) : (
 						<>
-							{renderGroup(
-								"Block",
-								visibleCommands,
-								activeKind,
-								runCommand,
-								editor,
-							)}
-							{renderGroup(
-								"Inline",
-								visibleCommands,
-								activeKind,
-								runCommand,
-								editor,
-							)}
+							{renderGroup("Block", visibleCommands, runCommand, editor)}
+							{renderGroup("Inline", visibleCommands, runCommand, editor)}
 						</>
 					)}
 				</Command.List>
@@ -280,7 +268,6 @@ export function FormatCommandMenu({
 function renderGroup(
 	group: FormatCommand["group"],
 	commands: FormatCommand[],
-	activeKind: FormatCommandKind | undefined,
 	runCommand: (kind: FormatCommandKind) => void,
 	editor: Editor,
 ) {
@@ -295,7 +282,6 @@ function renderGroup(
 		>
 			{groupCommands.map((command) => {
 				const Icon = command.icon;
-				const isSelected = activeKind === command.kind;
 				const isApplied = isFormatActive(editor, command.kind);
 				return (
 					<Command.Item
@@ -307,7 +293,6 @@ function renderGroup(
 						className={cn(
 							"flex min-w-0 cursor-default items-center gap-2 rounded-[calc(var(--radius)-2px)] px-2 py-1.5 text-start text-[11px] leading-[15px] outline-hidden",
 							"data-[selected=true]:bg-muted data-[selected=true]:text-foreground",
-							isSelected && "bg-muted text-foreground",
 						)}
 					>
 						<span className="flex size-4 shrink-0 items-center justify-center text-muted-foreground">
