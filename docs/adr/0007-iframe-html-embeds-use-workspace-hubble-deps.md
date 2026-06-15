@@ -1,5 +1,7 @@
 # Iframe HTML embeds use workspace-scoped .hubble dependencies
 
+> **Status: accepted.** This ADR is the source of truth for the current [[Embed]] strategy. It supersedes [ADR-0005](./0005-embeds-render-in-realm-shadow-dom.md)'s in-realm Embed Bundle direction for local, agent-authored mini apps.
+
 Hubble supports a lightweight [[Embed]] form for agent-authored mini apps:
 
 ```html
@@ -36,4 +38,4 @@ The iframe `src` must be a workspace-local relative `.html` path. Desktop resolv
 - Agents need an install step for `.hubble/package.json` before using Alpine, Tailwind, or Hubble runtime imports.
 - `node_modules` is not committed; `.hubble/package.json` and lockfiles are the portable contract.
 - The broker remains async and capability-scoped. Future write/create file APIs should extend the runtime broker rather than exposing direct filesystem access.
-- This iframe path does not replace in-realm Embed Bundles from ADR-0005; it is a simpler path for local HTML mini apps where iframe clipping and fixed height are acceptable.
+- Legacy in-realm Embed Bundle code should be removed or re-scoped behind a separate future ADR. New local mini-app work should use iframe HTML embeds.
