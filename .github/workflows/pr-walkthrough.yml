@@ -9,19 +9,12 @@ on:
         description: PR number to visualize. Leave empty to use the triggering pull request.
         required: false
         type: string
-      deploy_pages:
-        description: Deploy the generated walkthrough to GitHub Pages.
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: read
   pull-requests: read
   issues: read
   actions: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pr-walkthrough-${{ github.event.pull_request.number || inputs.pr_number || github.ref }}
@@ -80,26 +73,3 @@ jobs:
           name: pr-walkthrough-${{ steps.pr.outputs.number }}
           path: .warp/pr-walkthrough
           if-no-files-found: error
-
-      - name: Upload GitHub Pages artifact
-        if: ${{ inputs.deploy_pages == true }}
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: .warp/pr-walkthrough
-
-  deploy:
-    name: Deploy walkthrough to Pages
-    needs: generate
-    if: ${{ inputs.deploy_pages == true }}
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-      - name: Report visualizer URL
-        run: |
-          echo "PR walkthrough visualizer: ${{ steps.deployment.outputs.page_url }}"
