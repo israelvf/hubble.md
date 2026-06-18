@@ -21,6 +21,9 @@ import {
 	workspaceStore,
 } from "./state";
 
+const MISSING_PATH_SYNC_DELAY_MS = 250;
+let missingPathSyncTimer: ReturnType<typeof setTimeout> | null = null;
+
 export async function refreshFiles(path = workspaceStore.get().workspacePath) {
 	if (!path) return;
 	let files: FileEntry[] = [];
@@ -46,7 +49,11 @@ function syncWorkspaceAfterMissingPath(err: unknown) {
 	if (!/\bENOENT\b|\bENOTDIR\b/.test(message)) return;
 	// Missing files usually mean the sidebar snapshot is stale because Hubble no
 	// longer watches the whole workspace.
-	void refreshFiles();
+	if (missingPathSyncTimer !== null) clearTimeout(missingPathSyncTimer);
+	missingPathSyncTimer = setTimeout(() => {
+		missingPathSyncTimer = null;
+		void refreshFiles();
+	}, MISSING_PATH_SYNC_DELAY_MS);
 }
 
 function relativeWorkspacePath(path: string, workspacePath: string | null) {

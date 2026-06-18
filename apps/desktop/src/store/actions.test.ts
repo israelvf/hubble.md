@@ -230,6 +230,40 @@ describe("desktop loadPath", () => {
 			]);
 		});
 	});
+
+	it("debounces repeated missing-file sidebar refreshes", async () => {
+		vi.useFakeTimers();
+		try {
+			const api = createDesktopApi();
+			api.readFileText.mockRejectedValue(
+				new Error("ENOENT: no such file or directory"),
+			);
+			api.listDirectory.mockResolvedValue([]);
+			const { appStore, loadPath } = await loadStoreActions(api);
+
+			appStore.set((current) => ({
+				...current,
+				workspace: {
+					...current.workspace,
+					workspacePath: "/workspace",
+					files: [
+						{ path: "/workspace/a.md", modified_at: 1 },
+						{ path: "/workspace/b.md", modified_at: 1 },
+					],
+				},
+			}));
+
+			await loadPath("/workspace/a.md");
+			await loadPath("/workspace/b.md");
+
+			expect(api.listDirectory).not.toHaveBeenCalled();
+			await vi.advanceTimersByTimeAsync(250);
+
+			expect(api.listDirectory).toHaveBeenCalledTimes(1);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
 });
 
 describe("desktop pinned notes", () => {
