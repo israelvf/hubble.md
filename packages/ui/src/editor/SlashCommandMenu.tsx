@@ -18,6 +18,7 @@ import MingcuteQuoteLeftLine from "~icons/mingcute/quote-left-line";
 import MingcuteStrikethroughLine from "~icons/mingcute/strikethrough-line";
 import MingcuteTextLine from "~icons/mingcute/text-line";
 import { cn } from "../lib/utils";
+import { useCommandMenuPosition } from "./commandMenuPosition";
 import {
 	applySlashCommand,
 	findSlashToken,
@@ -123,6 +124,7 @@ export function SlashCommandMenu({
 	const [selectedKind, setSelectedKind] =
 		useState<SlashCommandKind>("paragraph");
 	const suppressedFromRef = useRef<number | null>(null);
+	const menuRef = useRef<HTMLDivElement | null>(null);
 	const visibleCommands = SLASH_COMMANDS.filter((command) =>
 		matchesCommand(command, token?.query ?? ""),
 	);
@@ -153,9 +155,8 @@ export function SlashCommandMenu({
 				setPosition(null);
 				return;
 			}
-			const nextPosition = positionForToken(editor, nextToken, viewportRef);
+			setPosition(null);
 			setToken(nextToken);
-			setPosition(nextPosition);
 		};
 
 		update();
@@ -175,6 +176,14 @@ export function SlashCommandMenu({
 			window.removeEventListener("resize", update);
 		};
 	}, [editor, viewportRef]);
+
+	useCommandMenuPosition({
+		editor,
+		floatingRef: menuRef,
+		pos: token?.from ?? null,
+		setPosition,
+		viewportRef,
+	});
 
 	useEffect(() => {
 		if (!editor) return;
@@ -221,16 +230,18 @@ export function SlashCommandMenu({
 			editor.view.dom.removeEventListener("keydown", handleKeyDown, true);
 	}, [activeKind, editor, token, visibleCommands]);
 
-	if (!editor || !token || !position || visibleCommands.length === 0) {
+	if (!editor || !token || visibleCommands.length === 0) {
 		return null;
 	}
 
 	return (
 		<div
+			ref={menuRef}
 			className="absolute z-[4] w-[250px] overflow-hidden rounded-[var(--radius-popover)] border border-border bg-popover text-popover-foreground shadow-overlay"
 			style={{
-				insetInlineStart: `${position.x}px`,
-				insetBlockStart: `${position.y}px`,
+				insetInlineStart: `${position?.x ?? 0}px`,
+				insetBlockStart: `${position?.y ?? 0}px`,
+				visibility: position ? "visible" : "hidden",
 			}}
 		>
 			<Command
@@ -283,21 +294,6 @@ export function SlashCommandMenu({
 			</Command>
 		</div>
 	);
-}
-
-function positionForToken(
-	editor: Editor,
-	token: SlashToken,
-	viewportRef: RefObject<HTMLDivElement | null>,
-): MenuPosition | null {
-	const viewport = viewportRef.current;
-	if (!viewport) return null;
-	const coords = editor.view.coordsAtPos(token.from);
-	const viewportRect = viewport.getBoundingClientRect();
-	return {
-		x: Math.max(8, coords.left - viewportRect.left + viewport.scrollLeft),
-		y: coords.bottom - viewportRect.top + viewport.scrollTop + 6,
-	};
 }
 
 function matchesCommand(command: SlashCommand, query: string) {

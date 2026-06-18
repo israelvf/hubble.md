@@ -24,6 +24,7 @@ import MingcuteQuoteLeftLine from "~icons/mingcute/quote-left-line";
 import MingcuteStrikethroughLine from "~icons/mingcute/strikethrough-line";
 import MingcuteTextLine from "~icons/mingcute/text-line";
 import { cn } from "../lib/utils";
+import { useCommandMenuPosition } from "./commandMenuPosition";
 
 type FormatCommandKind =
 	| "paragraph"
@@ -174,6 +175,7 @@ export function FormatCommandMenu({
 	const [selectedKind, setSelectedKind] =
 		useState<FormatCommandKind>("paragraph");
 	const inputRef = useRef<HTMLInputElement | null>(null);
+	const menuRef = useRef<HTMLDivElement | null>(null);
 	const visibleCommands = FORMAT_COMMANDS.filter((command) =>
 		matchesCommand(command, query),
 	);
@@ -199,11 +201,11 @@ export function FormatCommandMenu({
 				closeMenu();
 				return;
 			}
-			const nextPosition = positionForSelection(editor, viewportRef);
-			if (!nextPosition) return;
+			const viewport = viewportRef.current;
+			if (!viewport) return;
 			setQuery("");
 			setSelectedKind("paragraph");
-			setPosition(nextPosition);
+			setPosition(null);
 			setOpen(true);
 			requestAnimationFrame(() => inputRef.current?.focus());
 		};
@@ -212,7 +214,15 @@ export function FormatCommandMenu({
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, [closeMenu, editor, open, viewportRef]);
 
-	if (!editor || !open || !position) return null;
+	useCommandMenuPosition({
+		editor,
+		floatingRef: menuRef,
+		pos: open ? (editor?.state.selection.from ?? null) : null,
+		setPosition,
+		viewportRef,
+	});
+
+	if (!editor || !open) return null;
 
 	const runCommand = (kind: FormatCommandKind) => {
 		closeMenu();
@@ -221,10 +231,12 @@ export function FormatCommandMenu({
 
 	return (
 		<div
+			ref={menuRef}
 			className="absolute z-[5] w-[250px] overflow-hidden rounded-[var(--radius-popover)] border border-border bg-popover text-popover-foreground shadow-overlay"
 			style={{
-				insetInlineStart: `${position.x}px`,
-				insetBlockStart: `${position.y}px`,
+				insetInlineStart: `${position?.x ?? 0}px`,
+				insetBlockStart: `${position?.y ?? 0}px`,
+				visibility: position ? "visible" : "hidden",
 			}}
 		>
 			<Command
@@ -309,20 +321,6 @@ function renderGroup(
 			})}
 		</Command.Group>
 	);
-}
-
-function positionForSelection(
-	editor: Editor,
-	viewportRef: RefObject<HTMLDivElement | null>,
-): MenuPosition | null {
-	const viewport = viewportRef.current;
-	if (!viewport) return null;
-	const coords = editor.view.coordsAtPos(editor.state.selection.from);
-	const viewportRect = viewport.getBoundingClientRect();
-	return {
-		x: Math.max(8, coords.left - viewportRect.left + viewport.scrollLeft),
-		y: coords.bottom - viewportRect.top + viewport.scrollTop + 6,
-	};
 }
 
 function matchesCommand(command: FormatCommand, query: string) {
