@@ -193,6 +193,79 @@ describe("desktop renameMarkdownFile", () => {
 	});
 });
 
+describe("desktop loadPath", () => {
+	beforeEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("refreshes the sidebar when a selected file no longer exists", async () => {
+		const api = createDesktopApi();
+		const missingPath = "/workspace/missing.md";
+		const remainingPath = "/workspace/remaining.md";
+		api.readFileText.mockRejectedValue(
+			new Error(`ENOENT: no such file or directory, open '${missingPath}'`),
+		);
+		api.listDirectory.mockResolvedValue([
+			{ path: remainingPath, modified_at: 2 },
+		]);
+		const { appStore, loadPath, workspaceStore } = await loadStoreActions(api);
+
+		appStore.set((current) => ({
+			...current,
+			workspace: {
+				...current.workspace,
+				workspacePath: "/workspace",
+				files: [
+					{ path: missingPath, modified_at: 1 },
+					{ path: remainingPath, modified_at: 2 },
+				],
+			},
+		}));
+
+		await loadPath(missingPath);
+
+		await vi.waitFor(() => {
+			expect(workspaceStore.get().files).toEqual([
+				{ path: remainingPath, modified_at: 2 },
+			]);
+		});
+	});
+
+	it("debounces repeated missing-file sidebar refreshes", async () => {
+		vi.useFakeTimers();
+		try {
+			const api = createDesktopApi();
+			api.readFileText.mockRejectedValue(
+				new Error("ENOENT: no such file or directory"),
+			);
+			api.listDirectory.mockResolvedValue([]);
+			const { appStore, loadPath } = await loadStoreActions(api);
+
+			appStore.set((current) => ({
+				...current,
+				workspace: {
+					...current.workspace,
+					workspacePath: "/workspace",
+					files: [
+						{ path: "/workspace/a.md", modified_at: 1 },
+						{ path: "/workspace/b.md", modified_at: 1 },
+					],
+				},
+			}));
+
+			await loadPath("/workspace/a.md");
+			await loadPath("/workspace/b.md");
+
+			expect(api.listDirectory).not.toHaveBeenCalled();
+			await vi.advanceTimersByTimeAsync(250);
+
+			expect(api.listDirectory).toHaveBeenCalledTimes(1);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+});
+
 describe("desktop pinned notes", () => {
 	beforeEach(() => {
 		vi.unstubAllGlobals();

@@ -25,6 +25,7 @@ import {
 	openWorkspace,
 	openWorkspaceWithSidebar,
 	refreshFiles,
+	refreshFilesDebounced,
 	reloadFromDiskConflict,
 	savePathContent,
 	setSidebarOpen,
@@ -91,37 +92,6 @@ function App() {
 		}
 		await desktopApi.checkForUpdates();
 	}, [installUpdate, updateState]);
-
-	useEffect(() => {
-		if (!workspacePath) return;
-
-		let disposed = false;
-		let unwatch: null | (() => void) = null;
-
-		const handleChange = async (paths: string[]) => {
-			if (paths.length === 0) return;
-			void refreshFiles(workspacePath);
-		};
-
-		const setup = async () => {
-			unwatch = await desktopApi.watchPath(
-				workspacePath,
-				{ recursive: true },
-				(paths) => void handleChange(paths),
-			);
-			if (disposed && unwatch) {
-				unwatch();
-			}
-		};
-
-		void setup();
-		return () => {
-			disposed = true;
-			if (unwatch) {
-				unwatch();
-			}
-		};
-	}, [workspacePath]);
 
 	useEffect(() => {
 		const currentPath = state.currentPath;
@@ -244,11 +214,21 @@ function App() {
 			desktopApi.onMenuShowWorkspaceSwitcher(() =>
 				setWorkspaceSwitcherOpen(true),
 			),
+			desktopApi.onMenuSyncWorkspace(() => void refreshFiles()),
 		];
 		return () => {
 			for (const dispose of disposers) dispose();
 		};
 	}, [openFilePicker, openSettings]);
+
+	useEffect(() => {
+		// Window focus can fire in bursts when switching apps, so debounce the
+		// sidebar refresh and keep the editor interactive while it runs.
+		const dispose = desktopApi.onWindowFocus(() => refreshFilesDebounced());
+		return () => {
+			dispose();
+		};
+	}, []);
 
 	useEffect(() => {
 		let active = true;

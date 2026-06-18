@@ -21,6 +21,10 @@ import {
 	workspaceStore,
 } from "./state";
 
+const REFRESH_FILES_DEBOUNCE_MS = 250;
+const missingPathErrorPattern = /\bENOENT\b|\bENOTDIR\b/;
+let refreshFilesTimer: ReturnType<typeof setTimeout> | null = null;
+
 export async function refreshFiles(path = workspaceStore.get().workspacePath) {
 	if (!path) return;
 	let files: FileEntry[] = [];
@@ -35,6 +39,40 @@ export async function refreshFiles(path = workspaceStore.get().workspacePath) {
 		if (state.workspacePath !== path) return state;
 		return { ...state, files };
 	});
+}
+
+/**
+ * Debounced wrapper for event-driven sidebar refreshes.
+ *
+ * Keep `refreshFiles()` immediate for user actions that await a fresh snapshot.
+ * Prefer debounced for refreshes triggered by effects.
+ */
+export function refreshFilesDebounced(
+	path = workspaceStore.get().workspacePath,
+) {
+	if (!path) return;
+	if (refreshFilesTimer !== null) clearTimeout(refreshFilesTimer);
+	refreshFilesTimer = setTimeout(() => {
+		refreshFilesTimer = null;
+		void refreshFiles(path);
+	}, REFRESH_FILES_DEBOUNCE_MS);
+}
+
+function errorMessage(err: unknown) {
+	return err instanceof Error ? err.message : String(err);
+}
+
+function refreshFilesAfterMissingPath(message: string) {
+	if (!missingPathErrorPattern.test(message)) return;
+	// Missing files usually mean the sidebar snapshot is stale because Hubble no
+	// longer watches the whole workspace.
+	refreshFilesDebounced();
+}
+
+function handleFileError(err: unknown) {
+	const message = errorMessage(err);
+	refreshFilesAfterMissingPath(message);
+	return message;
 }
 
 function relativeWorkspacePath(path: string, workspacePath: string | null) {
@@ -79,7 +117,7 @@ async function syncPinnedNotes() {
 	try {
 		await writePinnedNotes(workspacePath, workspaceStore.get().pinnedNotes);
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = handleFileError(err);
 		toast.error("Failed to update pinned notes", { description: message });
 	}
 }
@@ -259,7 +297,7 @@ export async function savePathContent(
 			};
 		});
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = handleFileError(err);
 		toast.error("Failed to save file", { description: message });
 		viewerStore.set((state) => {
 			if (state.currentPath !== path) return state;
@@ -333,7 +371,7 @@ export async function renameMarkdownFile(path: string, nextName: string) {
 		}
 	} catch (err) {
 		pendingRenames.delete(path);
-		const message = err instanceof Error ? err.message : String(err);
+		const message = handleFileError(err);
 		toast.error("Failed to rename file", { description: message });
 	} finally {
 		window.setTimeout(() => pendingRenames.delete(path), 1000);
@@ -359,7 +397,7 @@ export async function createMarkdownFileInFolder(parentPath: string) {
 		await refreshFiles();
 		return path;
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = handleFileError(err);
 		toast.error("Failed to create file", { description: message });
 		return null;
 	}
@@ -400,7 +438,7 @@ export async function deleteMarkdownFile(path: string) {
 		await syncPinnedNotes();
 		await refreshFiles();
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = handleFileError(err);
 		toast.error("Failed to delete file", { description: message });
 	}
 }
@@ -445,7 +483,7 @@ export async function deleteFolder(path: string) {
 		await syncPinnedNotes();
 		await refreshFiles();
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = handleFileError(err);
 		toast.error("Failed to delete folder", { description: message });
 	}
 }
@@ -494,7 +532,7 @@ export const loadPath = latest(async ({ isStale }, path: string) => {
 		appStore.set((state) => withOpenedDoc(state, path, content));
 	} catch (err) {
 		if (isStale()) return;
-		const message = err instanceof Error ? err.message : String(err);
+		const message = handleFileError(err);
 		toast.error("Failed to open file", { description: message });
 		viewerStore.set((state) => ({
 			...emptyDoc(state.lastOpenedPath),
@@ -520,7 +558,7 @@ export async function togglePinnedNote(path: string) {
 	try {
 		await writePinnedNotes(workspacePath, nextPinnedNotes);
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = handleFileError(err);
 		toast.error("Failed to update pinned notes", { description: message });
 		await loadPinnedNotes(workspacePath);
 	}
