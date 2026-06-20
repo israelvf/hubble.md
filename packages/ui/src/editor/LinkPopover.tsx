@@ -668,9 +668,9 @@ export function LinkPopover({
 	const wikiQuery = machineState.mode === "creating" ? creationHref : hrefValue;
 	const wikiSuggestions = useMemo(() => {
 		const query = normalizedSearchValue(wikiQuery);
-		if (!query) return [];
 		return wikiTargets
 			.filter((file) => {
+				if (!query) return true;
 				const haystack = `${file.title} ${file.target}`.toLocaleLowerCase();
 				return haystack.includes(query);
 			})

@@ -1,6 +1,7 @@
 import { Extension } from "@tiptap/core";
 import {
 	type EditorState,
+	Plugin,
 	TextSelection,
 	type Transaction,
 } from "@tiptap/pm/state";
@@ -60,6 +61,35 @@ export const SmartLinkExtension = Extension.create({
 		return {
 			"Mod-k": () => this.editor.commands.toggleLinkAtSelection(),
 		};
+	},
+	addProseMirrorPlugins() {
+		return [
+			new Plugin({
+				props: {
+					handleTextInput(view, from, _to, text) {
+						// Detect `[[` to expand link popover
+						if (text !== "[") return false;
+						if (
+							from <= 1 ||
+							view.state.doc.textBetween(from - 1, from) !== "["
+						) {
+							return false;
+						}
+
+						const pos = from - 1;
+						const tr = view.state.tr.delete(pos, from);
+						tr.setSelection(TextSelection.create(tr.doc, pos));
+						view.dispatch(tr);
+						window.dispatchEvent(
+							new CustomEvent(LINK_CREATION_REQUESTED_EVENT, {
+								detail: { pos },
+							}),
+						);
+						return true;
+					},
+				},
+			}),
+		];
 	},
 });
 
