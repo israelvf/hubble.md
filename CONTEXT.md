@@ -43,6 +43,10 @@ The optional capability that binds a [[Workspace]] to a Convex deployment, enabl
 
 A markdown document on the local filesystem or in a Workspace.
 
+### HTML App
+
+A folder-local `.html` file that Hubble runs as a self-contained, interactive UI. Opening an HTML App directly shows it in the main content panel instead of the Markdown editor. An HTML App reaches files in the open Folder only through a capability-scoped, async **broker**, never directly.
+
 ### Slash Command
 
 A formatting command launched by typing `/` in a Markdown File. Slash Commands create a new block after the current block, except when the current block is an empty paragraph, where the command converts that paragraph in place.
@@ -61,10 +65,9 @@ A binary file referenced by a Markdown File, such as an image. Asset paths in ma
 
 ### Embed
 
-A self-contained, interactive UI placed at a point in a [[Markdown File]]. Hubble supports workspace-local iframe HTML embeds for agent-authored mini apps. See ADR-0007.
+An inline placement of an [[HTML App]] at a point in a [[Markdown File]]. Use an Embed when an HTML App should appear inside existing Markdown content instead of taking over the main content panel. See ADR-0007.
 
-Embeds reach Workspace data only through a capability-scoped, async **broker**, never directly.
-_Avoid_: widget, plugin, gadget, component.
+Embeds have the same constraints as HTML apps; they reach files in the open Folder only through a capability-scoped, async **broker**, never directly.
 
 ### Workspace Snapshot
 

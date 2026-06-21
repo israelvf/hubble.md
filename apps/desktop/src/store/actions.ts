@@ -6,6 +6,7 @@ import {
 	basename,
 	dirname,
 	extname,
+	hasMarkdownExtension,
 	joinPath,
 	markdownAssetFolderPath,
 	normalizePath,
@@ -129,6 +130,7 @@ async function moveAssociatedAssetFolder(
 	fromFilePath: string,
 	toFilePath: string,
 ) {
+	if (!hasMarkdownExtension(fromFilePath)) return null;
 	const fromAssetFolder = markdownAssetFolderPath(fromFilePath);
 	const toAssetFolder = markdownAssetFolderPath(toFilePath);
 	if (
@@ -162,7 +164,7 @@ async function updateMovedLinks(movedFiles: MovedFile[], files: FileEntry[]) {
 	const movedByOldPath = indexMovedFiles(movedFiles);
 	const current = viewerStore.get();
 
-	for (const file of files) {
+	for (const file of files.filter((file) => hasMarkdownExtension(file.path))) {
 		const nextPath = pathAfterMove(file.path, movedByOldPath);
 		try {
 			// The open editor may have unsaved changes, so disk content is stale for

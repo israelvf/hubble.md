@@ -24,7 +24,7 @@ import type {
 	WorkspaceConfig,
 } from "../src/desktopApi/types";
 import {
-	hasMarkdownExtension,
+	hasDocumentExtension,
 	markdownAssetFolderPath,
 	withMarkdownExtension,
 } from "../src/lib/filePath";
@@ -266,8 +266,8 @@ function isIgnoredByRules(candidatePath: string, rules: IgnoreRule[]) {
 	return ignored;
 }
 
-function isMarkdownPath(candidatePath: string): boolean {
-	return hasMarkdownExtension(candidatePath);
+function isDocumentPath(candidatePath: string): boolean {
+	return hasDocumentExtension(candidatePath);
 }
 
 function isMissingPathError(error: unknown): boolean {
@@ -667,7 +667,7 @@ function fileAssetsDir(filePath: string): string {
 	return assetsDir;
 }
 
-async function collectMarkdownFiles(
+async function collectDocumentFiles(
 	dir: string,
 	out: FileEntry[],
 	inheritedRules: IgnoreRule[] = [],
@@ -678,8 +678,8 @@ async function collectMarkdownFiles(
 		const entryPath = path.join(dir, entry.name);
 		if (isIgnoredByRules(entryPath, rules)) continue;
 		if (entry.isDirectory()) {
-			await collectMarkdownFiles(entryPath, out, rules);
-		} else if (isMarkdownPath(entry.name)) {
+			await collectDocumentFiles(entryPath, out, rules);
+		} else if (isDocumentPath(entry.name)) {
 			const stat = await fs.stat(entryPath);
 			out.push({
 				path: entryPath,
@@ -776,7 +776,7 @@ function registerIpc() {
 			const stat = await fs.stat(root);
 			if (!stat.isDirectory()) throw new Error(`Not a directory: ${dirPath}`);
 			const entries: FileEntry[] = [];
-			await collectMarkdownFiles(root, entries);
+			await collectDocumentFiles(root, entries);
 			return entries;
 		},
 	);
@@ -945,7 +945,7 @@ function registerIpc() {
 					: undefined,
 			title: "Open Markdown file",
 			filters: [
-				{ name: "Markdown", extensions: ["md", "markdown", "mdown"] },
+				{ name: "Documents", extensions: ["md", "markdown", "mdown", "html"] },
 				{ name: "Text", extensions: ["txt", "text"] },
 			],
 		});
@@ -1001,7 +1001,7 @@ function registerIpc() {
 					depth: 0,
 				});
 				const emitFile = (changedPath: string) => {
-					if (isMarkdownPath(changedPath)) {
+					if (isDocumentPath(changedPath)) {
 						emit(changedPath);
 					}
 				};

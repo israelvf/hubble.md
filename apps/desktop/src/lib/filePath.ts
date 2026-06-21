@@ -1,4 +1,5 @@
 const MARKDOWN_EXTENSION_RE = /\.(md|markdown|mdown)$/i;
+const HTML_EXTENSION_RE = /\.html?$/i;
 
 export function dirname(filePath: string): string | null {
 	const forwardSlash = filePath.lastIndexOf("/");
@@ -21,6 +22,14 @@ export function extname(filePath: string): string {
 
 export function hasMarkdownExtension(path: string): boolean {
 	return MARKDOWN_EXTENSION_RE.test(path);
+}
+
+export function hasHtmlExtension(path: string): boolean {
+	return HTML_EXTENSION_RE.test(path);
+}
+
+export function hasDocumentExtension(path: string): boolean {
+	return hasMarkdownExtension(path) || hasHtmlExtension(path);
 }
 
 export function withMarkdownExtension(path: string): string {

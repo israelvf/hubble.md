@@ -15,9 +15,10 @@ import { desktopApi } from "./desktopApi";
 import type { DesktopUpdateState } from "./desktopApi/types";
 import { createEmbedExtension } from "./editor/EmbedExtension";
 import { handleImageDrop, handleImagePaste } from "./editor/handleImagePaste";
+import { IframeView, toAssetUrl } from "./editor/IframeView";
 import { createImageExtension } from "./editor/ImageExtension";
 import { createMarkdownFile } from "./fileActions";
-import { relativeWorkspacePath } from "./lib/filePath";
+import { hasHtmlExtension, relativeWorkspacePath } from "./lib/filePath";
 import { resolveWikiPath } from "./lib/wikiPath";
 import { SIDEBAR_NAV_SELECTOR } from "./selectors";
 import {
@@ -373,10 +374,9 @@ function App() {
 									onReloadFromDisk={reloadFromDiskConflict}
 								/>
 							)}
-							<MarkdownEditor
-								key={`${state.currentPath}:${HMR_REV}`}
+							<DocumentViewer
 								path={state.currentPath}
-								initialMarkdown={state.content}
+								content={state.content}
 								onScrollContainerChange={setScrollContainerEl}
 							/>
 						</div>
@@ -392,6 +392,67 @@ function App() {
 				) : null}
 			</SettingsDialog>
 		</main>
+	);
+}
+
+function DocumentViewer({
+	path,
+	content,
+	onScrollContainerChange,
+}: {
+	path: string;
+	content: string;
+	onScrollContainerChange?: (el: HTMLDivElement | null) => void;
+}) {
+	if (hasHtmlExtension(path)) {
+		return (
+			<HtmlDocumentViewer
+				key={`${path}:${content}`}
+				path={path}
+				onScrollContainerChange={onScrollContainerChange}
+			/>
+		);
+	}
+
+	return (
+		<MarkdownEditor
+			key={`${path}:${HMR_REV}`}
+			path={path}
+			initialMarkdown={content}
+			onScrollContainerChange={onScrollContainerChange}
+		/>
+	);
+}
+
+function HtmlDocumentViewer({
+	path,
+	onScrollContainerChange,
+}: {
+	path: string;
+	onScrollContainerChange?: (el: HTMLDivElement | null) => void;
+}) {
+	const workspace = useStoreValue(workspaceStore);
+	const [error, setError] = useState<string | null>(null);
+
+	useEffect(() => {
+		onScrollContainerChange?.(null);
+	}, [onScrollContainerChange]);
+
+	return (
+		<div className="flex h-full min-h-0 flex-1 overflow-hidden bg-background">
+			{error ? (
+				<p className="m-0 p-4 text-sm text-destructive">{error}</p>
+			) : (
+				<IframeView
+					className="block min-h-0 flex-1 border-0 bg-card"
+					onError={setError}
+					src={toAssetUrl(path)}
+					style={{ blockSize: "100%", inlineSize: "100%" }}
+					title={relativeWorkspacePath(path, workspace.workspacePath)}
+					workspacePath={workspace.workspacePath}
+				/>
+			)}
+		</div>
 	);
 }
 
