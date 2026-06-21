@@ -1,5 +1,5 @@
 (() => {
-	const hubbleToken = window.__hubbleEmbedToken || window.name;
+	const hubbleToken = window.__hubbleHtmlAppToken || window.name;
 	let nextHubbleRequestId = 0;
 	const pendingHubbleRequests = new Map();
 	const postHubbleRequest = (id, method, params) => {
@@ -18,6 +18,15 @@
 			pendingHubbleRequests.set(id, { resolve, reject, timeout });
 			postHubbleRequest(id, method, params);
 		});
+	const safeRequestHubble = (method, params) =>
+		requestHubble(method, params)
+			.then((value) => ({ ok: true, value }))
+			.catch((error) => ({
+				ok: false,
+				error: {
+					message: error instanceof Error ? error.message : String(error),
+				},
+			}));
 
 	window.addEventListener("message", (event) => {
 		const data = event.data;
@@ -27,13 +36,28 @@
 		pendingHubbleRequests.delete(data.id);
 		window.clearTimeout(pending.timeout);
 		if (data.ok) pending.resolve(data.value);
-		else pending.reject(new Error(data.error || "Hubble request failed"));
+		else if (data.error && typeof data.error.message === "string") {
+			pending.reject(new Error(data.error.message));
+		} else {
+			pending.reject(new Error(data.error || "Hubble request failed"));
+		}
 	});
 
 	window.hubble = {
 		files: {
 			list: (glob = "**/*") => requestHubble("files.list", { glob }),
+			safeList: (glob = "**/*") => safeRequestHubble("files.list", { glob }),
 			read: (path) => requestHubble("files.read", { path }),
+			safeRead: (path) => safeRequestHubble("files.read", { path }),
+			open: (path) => requestHubble("files.open", { path }),
+			safeOpen: (path) => safeRequestHubble("files.open", { path }),
+			create: (input) => requestHubble("files.create", { input }),
+			safeCreate: (input) => safeRequestHubble("files.create", { input }),
+			update: (path, patch) => requestHubble("files.update", { path, patch }),
+			safeUpdate: (path, patch) =>
+				safeRequestHubble("files.update", { path, patch }),
+			remove: (path) => requestHubble("files.remove", { path }),
+			safeRemove: (path) => safeRequestHubble("files.remove", { path }),
 		},
 	};
 
@@ -52,7 +76,7 @@
 				}, 0) + bodyPaddingBlockEnd
 			: 0;
 		parent.postMessage(
-			{ type: "hubble:embed-height", height, token: hubbleToken },
+			{ type: "hubble:html-app-height", height, token: hubbleToken },
 			"*",
 		);
 	};

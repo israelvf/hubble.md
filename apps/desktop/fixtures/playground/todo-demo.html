@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+	</head>
+	<body class="m-0 min-h-dvh overflow-auto bg-background font-sans text-foreground">
+		<main
+			class="mx-auto grid min-h-dvh max-w-5xl content-start gap-5 p-6"
+			x-data="{
+				todos: [],
+				draft: '',
+				filter: 'open',
+				error: '',
+				async init() {
+					await this.refresh()
+				},
+				get visibleTodos() {
+					return this.todos.filter((todo) => {
+						if (this.filter === 'done') return todo.done
+						if (this.filter === 'all') return true
+						return !todo.done
+					})
+				},
+				async refresh() {
+					this.error = ''
+					try {
+						const files = await hubble.files.list('todos/*.md')
+						const todos = await Promise.all(files.map(async (file) => {
+							const note = await hubble.files.read(file.path)
+							return {
+								path: file.path,
+								title: note.properties.title || note.body.replace(/^#\\s*/, '').trim() || file.name,
+								done: note.properties.done === true,
+								priority: note.properties.priority || 'normal',
+								updated: file.modified_at
+							}
+						}))
+						this.todos = todos.sort((a, b) => {
+							if (a.done !== b.done) return Number(a.done) - Number(b.done)
+							return b.updated - a.updated
+						})
+					} catch (error) {
+						this.error = error.message
+					}
+				},
+				slug(text) {
+					const slug = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+					return slug || 'todo'
+				},
+				async addTodo() {
+					const title = this.draft.trim()
+					if (!title) return
+					this.error = ''
+					try {
+						const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+						await hubble.files.create({
+							path: `todos/${this.slug(title)}-${stamp}.md`,
+							body: `# ${title}\\n\\n`,
+							properties: {
+								title,
+								done: false,
+								priority: 'normal'
+							}
+						})
+						this.draft = ''
+						await this.refresh()
+					} catch (error) {
+						this.error = error.message
+					}
+				},
+				async toggle(todo) {
+					this.error = ''
+					try {
+						await hubble.files.update(todo.path, {
+							properties: { done: !todo.done }
+						})
+						await this.refresh()
+					} catch (error) {
+						this.error = error.message
+					}
+				},
+				async setPriority(todo, priority) {
+					this.error = ''
+					try {
+						await hubble.files.update(todo.path, {
+							properties: { priority }
+						})
+						await this.refresh()
+					} catch (error) {
+						this.error = error.message
+					}
+				},
+				async open(todo) {
+					this.error = ''
+					try {
+						await hubble.files.open(todo.path)
+					} catch (error) {
+						this.error = error.message
+					}
+				},
+				async remove(todo) {
+					this.error = ''
+					try {
+						await hubble.files.remove(todo.path)
+						await this.refresh()
+					} catch (error) {
+						this.error = error.message
+					}
+				}
+			}"
+		>
+			<header class="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+				<div>
+					<h1 class="m-0 text-2xl font-bold leading-tight">Todos</h1>
+					<p class="m-0 text-sm text-muted-foreground">
+						Backed by Markdown files in <code>todos/</code>
+					</p>
+				</div>
+				<div class="flex rounded-md border border-border bg-background p-1 text-sm">
+					<button class="rounded p-2" type="button" :class="filter === 'open' && 'bg-primary text-primary-foreground'" @click="filter = 'open'">Open</button>
+					<button class="rounded p-2" type="button" :class="filter === 'done' && 'bg-primary text-primary-foreground'" @click="filter = 'done'">Done</button>
+					<button class="rounded p-2" type="button" :class="filter === 'all' && 'bg-primary text-primary-foreground'" @click="filter = 'all'">All</button>
+				</div>
+			</header>
+
+			<form class="flex gap-2" @submit.prevent="addTodo()">
+				<input
+					class="min-w-0 flex-1 rounded-md border border-border bg-card p-3 text-sm outline-none focus:border-primary"
+					placeholder="Add a todo"
+					x-model="draft"
+				/>
+				<button class="rounded-md bg-primary p-3 text-sm font-medium text-primary-foreground" type="submit">
+					Add
+				</button>
+			</form>
+
+			<p class="m-0 text-sm text-destructive" x-show="error" x-text="error"></p>
+
+			<ul class="m-0 grid list-none gap-2 p-0">
+				<template x-for="todo in visibleTodos" :key="todo.path">
+					<li class="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-border p-3">
+						<input class="size-4" type="checkbox" :checked="todo.done" @change="toggle(todo)" />
+						<button class="min-w-0 text-start" type="button" @click="open(todo)">
+							<span class="block truncate text-sm font-medium" :class="todo.done && 'line-through text-muted-foreground'" x-text="todo.title"></span>
+							<span class="block truncate text-xs text-muted-foreground" x-text="todo.path"></span>
+						</button>
+						<select class="rounded border border-border bg-card p-2 text-xs" :value="todo.priority" @change="setPriority(todo, $event.target.value)">
+							<option value="low">Low</option>
+							<option value="normal">Normal</option>
+							<option value="high">High</option>
+						</select>
+						<button class="rounded border border-destructive/40 p-2 text-destructive text-xs" type="button" @click="remove(todo)">
+							Remove
+						</button>
+					</li>
+				</template>
+			</ul>
+
+			<p class="m-0 text-sm text-muted-foreground" x-show="visibleTodos.length === 0">
+				No todos here.
+			</p>
+		</main>
+	</body>
+</html>

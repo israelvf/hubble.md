@@ -3,7 +3,7 @@ export type FileEntry = {
 	modified_at: number;
 };
 
-export type EmbedFileEntry = {
+export type HtmlAppFileEntry = {
 	name: string;
 	path: string;
 	modified_at: number;
@@ -59,10 +59,10 @@ export type WorkspaceConfig = {
 export type DesktopApi = {
 	platform: DesktopPlatform;
 	listDirectory(path: string): Promise<FileEntry[]>;
-	listEmbedFiles(
+	listHtmlAppFiles(
 		workspacePath: string,
 		glob: string,
-	): Promise<EmbedFileEntry[]>;
+	): Promise<HtmlAppFileEntry[]>;
 	readWorkspaceConfig(workspacePath: string): Promise<WorkspaceConfig>;
 	writeWorkspaceConfig(
 		workspacePath: string,
@@ -91,6 +91,7 @@ export type DesktopApi = {
 	openExternalUrl(url: string): Promise<void>;
 	revealFile(path: string): Promise<void>;
 	resolvePath(path: string): Promise<string>;
+	realPath(path: string): Promise<string>;
 	toAssetUrl(path: string): string;
 	getLaunchFilePath(): Promise<string | null>;
 	getLaunchWorkspacePath(): Promise<string | null>;

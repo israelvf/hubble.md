@@ -649,7 +649,10 @@ export async function createMarkdownFileInFolder(parentPath: string) {
 	}
 }
 
-export async function deleteMarkdownFile(path: string) {
+export async function deleteMarkdownFile(
+	path: string,
+	options?: { throwOnError?: boolean },
+) {
 	try {
 		await desktopApi.deleteFile(path);
 		appStore.set((state) => ({
@@ -686,6 +689,7 @@ export async function deleteMarkdownFile(path: string) {
 	} catch (err) {
 		const message = handleFileError(err);
 		toast.error("Failed to delete file", { description: message });
+		if (options?.throwOnError) throw err;
 	}
 }
 

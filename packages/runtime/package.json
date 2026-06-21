@@ -4,11 +4,11 @@
 	"license": "MIT",
 	"type": "module",
 	"exports": {
-		"./embed-theme.css": "./embed-theme.css",
+		"./html-app-theme.css": "./html-app-theme.css",
 		"./global.js": "./global.js"
 	},
 	"files": [
-		"embed-theme.css",
+		"html-app-theme.css",
 		"global.js"
 	],
 	"publishConfig": {

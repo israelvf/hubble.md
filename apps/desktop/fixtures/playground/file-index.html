@@ -4,9 +4,9 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 	</head>
-	<body class="m-0 font-sans text-foreground">
-		<div
-			class="rounded-lg border border-border bg-card px-5 py-5 text-card-foreground"
+	<body class="m-0 min-h-dvh overflow-auto bg-background font-sans text-foreground">
+		<main
+			class="mx-auto grid min-h-dvh max-w-5xl content-start gap-5 p-6"
 			x-data="{
 				files: [],
 				sort: 'recent',
@@ -31,11 +31,11 @@
 				}
 			}"
 		>
-			<div class="mb-4 flex items-center justify-between gap-3">
+			<div class="flex items-center justify-between gap-3 border-b border-border pb-4">
 				<h1 class="m-0 text-2xl leading-tight font-bold">Workspace files</h1>
 				<div class="flex gap-2" aria-label="Sort files">
 					<button
-						class="cursor-pointer rounded-md border border-border bg-background px-3 py-2 text-foreground aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
+						class="cursor-pointer rounded-md border border-border bg-card p-2 text-foreground aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
 						type="button"
 						:aria-pressed="sort === 'recent'"
 						@click="sort = 'recent'"
@@ -43,7 +43,7 @@
 						Recent
 					</button>
 					<button
-						class="cursor-pointer rounded-md border border-border bg-background px-3 py-2 text-foreground aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
+						class="cursor-pointer rounded-md border border-border bg-card p-2 text-foreground aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
 						type="button"
 						:aria-pressed="sort === 'name'"
 						@click="sort = 'name'"
@@ -60,7 +60,7 @@
 
 			<ul class="m-0 grid list-none gap-2 p-0" x-show="!error && files.length > 0">
 				<template x-for="file in sortedFiles" :key="file.path">
-					<li class="grid gap-1 rounded-md border border-border bg-background px-3.5 py-3">
+					<li class="grid gap-1 border-b border-border p-3">
 						<span class="text-[15px] font-bold" x-text="file.path"></span>
 						<span
 							class="text-[13px] text-muted-foreground"
@@ -69,6 +69,6 @@
 					</li>
 				</template>
 			</ul>
-		</div>
+		</main>
 	</body>
 </html>

@@ -1,6 +1,6 @@
 # Embeds render in-realm (Shadow DOM); untrusted documents are sandboxed at the editor, not per-embed
 
-> **Status: superseded by [ADR-0007](./0007-iframe-html-embeds-use-workspace-hubble-deps.md).** The iframe HTML embed path is now the source of truth for local, agent-authored mini apps. The in-realm Embed Bundle strategy is design history only and has been removed from the active implementation.
+> **Status: superseded by [ADR-0007](./0007-iframe-html-embeds-use-workspace-hubble-deps.md).** HTML Apps are now the source of truth for local, agent-authored apps; embeds are inline placements of those apps. The in-realm Embed Bundle strategy is design history only and has been removed from the active implementation.
 
 [[Embed]]s are interactive UI placed inline in documents, so they need editor-integrated UX: popovers/dropdowns that overflow their box, nested children, and low cost. A per-embed sandboxed iframe (ADR-0004) cannot provide this — iframe content is clipped to the frame rectangle, composition forces nested iframes, and every embed pays iframe + height-sync cost. Mainstream block editors (Gutenberg) render blocks **same-realm** as trusted code, use at most a *single* canvas iframe, and portal popovers out to the parent.
 

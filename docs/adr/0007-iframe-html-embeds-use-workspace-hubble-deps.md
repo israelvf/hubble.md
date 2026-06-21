@@ -15,11 +15,12 @@ The HTML file must live inside the open Folder. For an Embed, the iframe `src` m
 - **Load authored HTML by `src`, not `srcdoc`.** Opaque sandboxed `srcdoc` rendered blank in Electron because the child document got a zero layout box on cold start. Loading the workspace file through `hubble-asset://` preserves the opaque sandbox and gives Chromium a normal frame document.
 - **Inject dependencies from the host.** Desktop serves Folder `.html` files through `hubble-asset://` after injecting vendorized scripts. Authored HTML should not include dependency `<script>` tags for the Hubble runtime, Tailwind browser, or Alpine.
 - **Bundle a canonical dependency set.** The first slice injects Hubble runtime, Tailwind browser v4, and Alpine for every HTML App. There is no opt-in or opt-out yet.
-- **The iframe runtime exposes a small global API.** Today it provides `window.hubble.files.list()` and `window.hubble.files.read()` plus height reporting over `postMessage` when the HTML App is embedded inline.
+- **The HTML app runtime exposes a small global API.** Today it provides `window.hubble.files.list()`, `window.hubble.files.read()`, `window.hubble.files.open()`, `window.hubble.files.create()`, `window.hubble.files.update()`, and `window.hubble.files.remove()` plus height reporting over `postMessage` when the HTML App is embedded inline. Each file method throws on failure and has a `safe*` variant that returns `{ ok, value | error }`.
+- **HTML app file operations are Markdown File operations, not raw filesystem access.** File paths are workspace-relative Markdown paths. `read()` returns `{ path, body, properties }`; `update()` is patch-like and accepts `body`, `properties`, or both. Omitted fields are preserved, and `null` deletes a property key. `create()` fails if the destination already exists. `remove()` prompts for user confirmation before deleting.
 
 ## Consequences
 
 - HTML Apps are viewable in a normal browser as static HTML, but Hubble-specific APIs and host-injected dependencies only work when served by Hubble.
 - Agents do not need an install step or `.hubble/node_modules` before using Alpine, Tailwind browser classes, or `window.hubble`.
 - The Desktop app's bundled runtime dependencies are the portable contract.
-- The broker remains async and capability-scoped. Future write/create file APIs should extend the runtime broker rather than exposing direct filesystem access.
+- The broker remains async and capability-scoped. Future file APIs should extend the runtime broker rather than exposing direct filesystem access.

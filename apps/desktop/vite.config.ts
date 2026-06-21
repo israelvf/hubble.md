@@ -19,6 +19,10 @@ export default defineConfig(async () => ({
 	resolve: {
 		alias: {
 			"@": fileURLToPath(new URL("./src", import.meta.url)),
+			// Desktop Vitest can run before workspace packages have built dist files.
+			"@hubble.md/editor": fileURLToPath(
+				new URL("../../packages/editor/src/index.ts", import.meta.url),
+			),
 		},
 	},
 	clearScreen: false,

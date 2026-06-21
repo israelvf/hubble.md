@@ -17,8 +17,8 @@ const desktopApi = {
 	platform: process.platform,
 	listDirectory: (path) =>
 		ipcRenderer.invoke("desktop:list-directory", { path }),
-	listEmbedFiles: (workspacePath, glob) =>
-		ipcRenderer.invoke("desktop:embed-list-files", { workspacePath, glob }),
+	listHtmlAppFiles: (workspacePath, glob) =>
+		ipcRenderer.invoke("desktop:html-app-list-files", { workspacePath, glob }),
 	readWorkspaceConfig: (workspacePath) =>
 		ipcRenderer.invoke("desktop:read-workspace-config", { workspacePath }),
 	writeWorkspaceConfig: (workspacePath, config) =>
@@ -62,6 +62,7 @@ const desktopApi = {
 		ipcRenderer.invoke("desktop:open-external-url", { url }),
 	revealFile: (path) => ipcRenderer.invoke("desktop:reveal-file", { path }),
 	resolvePath: (path) => ipcRenderer.invoke("desktop:resolve-path", { path }),
+	realPath: (path) => ipcRenderer.invoke("desktop:real-path", { path }),
 	toAssetUrl: (path) =>
 		`hubble-asset://local/?path=${encodeURIComponent(path)}`,
 	getLaunchFilePath: () => ipcRenderer.invoke("desktop:get-launch-file-path"),

@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import embedTheme from "@hubble.md/runtime/embed-theme.css?raw";
 import hubbleRuntime from "@hubble.md/runtime/global.js?raw";
+import htmlAppTheme from "@hubble.md/runtime/html-app-theme.css?raw";
 import tailwindRuntime from "@tailwindcss/browser?raw";
 import alpineRuntime from "alpinejs/dist/cdn.min.js?raw";
 import chokidar, { type FSWatcher } from "chokidar";
@@ -34,7 +34,7 @@ type FileEntry = {
 	modified_at: number;
 };
 
-type EmbedFileEntry = {
+type HtmlAppFileEntry = {
 	name: string;
 	path: string;
 	modified_at: number;
@@ -50,7 +50,7 @@ type IgnoreRule = {
 	matcher: ReturnType<typeof ignore>;
 };
 
-type IframeAsset = {
+type HtmlAppAsset = {
 	name: string;
 	source: string;
 };
@@ -118,15 +118,15 @@ const workspaceConfigSchema = z.object({
 			),
 	),
 });
-const iframeHeadStyles = [
-	{ name: "hubble-theme", source: embedTheme },
+const htmlAppHeadStyles = [
+	{ name: "hubble-theme", source: htmlAppTheme },
 ] as const;
-const iframeHeadScripts = [
+const htmlAppHeadScripts = [
 	{ name: "hubble-runtime", source: hubbleRuntime },
 	{ name: "tailwind-browser", source: tailwindRuntime },
 ] as const;
 // Alpine's CDN build auto-starts immediately; inline scripts cannot use defer.
-const iframeBodyEndScripts = [
+const htmlAppBodyEndScripts = [
 	{ name: "alpine", source: alpineRuntime },
 ] as const;
 
@@ -382,11 +382,11 @@ function assetContentType(filePath: string): string {
 	}
 }
 
-function scriptTag({ name, source }: IframeAsset) {
+function scriptTag({ name, source }: HtmlAppAsset) {
 	return `<script data-hubble-injected="${name}">\n${source}\n</script>`;
 }
 
-function styleTag({ name, source }: IframeAsset) {
+function styleTag({ name, source }: HtmlAppAsset) {
 	return `<style data-hubble-injected="${name}" type="text/tailwindcss">\n${source}\n</style>`;
 }
 
@@ -396,10 +396,10 @@ function insertBeforeCloseTag(html: string, tagName: string, content: string) {
 	return `${html.slice(0, closeIndex)}${content}${html.slice(closeIndex)}`;
 }
 
-function injectIframeRuntime(html: string): string {
-	const headStyles = iframeHeadStyles.map(styleTag).join("\n");
-	const headScripts = iframeHeadScripts.map(scriptTag).join("\n");
-	const bodyEndScripts = iframeBodyEndScripts.map(scriptTag).join("\n");
+function injectHtmlAppRuntime(html: string): string {
+	const headStyles = htmlAppHeadStyles.map(styleTag).join("\n");
+	const headScripts = htmlAppHeadScripts.map(scriptTag).join("\n");
+	const bodyEndScripts = htmlAppBodyEndScripts.map(scriptTag).join("\n");
 	const headInjection = `\n${headStyles}\n${headScripts}\n`;
 	const bodyEndInjection = `\n${bodyEndScripts}\n`;
 	const withHead =
@@ -412,7 +412,7 @@ function injectIframeRuntime(html: string): string {
 function responseForAsset(filePath: string) {
 	const contentType = assetContentType(filePath);
 	const body = contentType.startsWith("text/html")
-		? injectIframeRuntime(fsSync.readFileSync(filePath, "utf8"))
+		? injectHtmlAppRuntime(fsSync.readFileSync(filePath, "utf8"))
 		: fsSync.readFileSync(filePath);
 
 	return new Response(body, {
@@ -693,7 +693,7 @@ async function collectWorkspaceFiles(
 	root: string,
 	dir: string,
 	glob: string,
-	out: EmbedFileEntry[],
+	out: HtmlAppFileEntry[],
 	inheritedRules: IgnoreRule[] = [],
 ) {
 	const rules = await rulesForDir(dir, inheritedRules);
@@ -782,13 +782,13 @@ function registerIpc() {
 	);
 
 	ipcMain.handle(
-		"desktop:embed-list-files",
+		"desktop:html-app-list-files",
 		async (_event, { workspacePath, glob }) => {
 			const root = assertGrantedRoot(workspacePath);
 			const stat = await fs.stat(root);
 			if (!stat.isDirectory())
 				throw new Error(`Not a directory: ${workspacePath}`);
-			const files: EmbedFileEntry[] = [];
+			const files: HtmlAppFileEntry[] = [];
 			await collectWorkspaceFiles(root, root, String(glob ?? "**/*"), files);
 			return files.sort((a, b) => a.path.localeCompare(b.path));
 		},
@@ -1043,6 +1043,10 @@ function registerIpc() {
 		resolvePath(path),
 	);
 
+	ipcMain.handle("desktop:real-path", async (_event, { path: filePath }) =>
+		fs.realpath(assertGranted(filePath)),
+	);
+
 	ipcMain.handle("desktop:get-launch-file-path", () => {
 		const pathToOpen = pendingOpenPath;
 		pendingOpenPath = null;
@@ -1115,7 +1119,7 @@ if (!singleInstanceLock) {
 		protocol.handle("hubble-asset", (request) => {
 			const url = new URL(request.url);
 			const filePath = assertGranted(assetPathFromUrl(url));
-			// HTML iframe embeds use this protocol as their base URL, so relative
+			// HTML apps use this protocol as their base URL, so relative
 			// scripts, stylesheets, images, and fetches resolve to granted files.
 			// Disable caching because these files are edited directly in workspaces.
 			return responseForAsset(filePath);

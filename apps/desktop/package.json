@@ -13,6 +13,7 @@
 		"bundle": "pnpm build && electron-builder --mac",
 		"bundle:publish": "pnpm build && electron-builder --mac --publish always",
 		"preview": "vite preview",
+		"sync:playground": "node scripts/sync-playground.mjs",
 		"test": "vitest run"
 	},
 	"dependencies": {
