@@ -99,6 +99,7 @@
 			"category": "public.app-category.productivity"
 		},
 		"linux": {
+			"executableName": "hubble.md",
 			"target": [
 				"AppImage",
 				"deb"
