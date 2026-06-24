@@ -87,6 +87,32 @@ function blockToMarkdown(node: JSONContent): string {
 			return `<iframe src="${escapeHtmlAttr(src)}"></iframe>`;
 		}
 
+		case "table": {
+			const rows = (node.content ?? []).map((row, index) => {
+				const rowText = blockToMarkdown(row);
+				if (index === 0) {
+					const cellCount = row.content?.length ?? 1;
+					const separator = `|${Array(cellCount).fill("---").join("|")}|`;
+					return `${rowText}\n${separator}`;
+				}
+				return rowText;
+			});
+			return rows.join("\n");
+		}
+
+		case "tableRow": {
+			const cells = (node.content ?? []).map(blockToMarkdown);
+			return `| ${cells.join(" | ")} |`;
+		}
+
+		case "tableCell":
+		case "tableHeader": {
+			const cellContent = (node.content ?? [])
+				.map(blockToMarkdown)
+				.join("<br>");
+			return cellContent.replace(/\|/g, "\\|");
+		}
+
 		default:
 			return "";
 	}

@@ -515,3 +515,27 @@
 		inset-inline-start: 100%;
 	}
 }
+
+[data-hubble-editor] .ProseMirror table {
+	border-collapse: collapse;
+	table-layout: fixed;
+	inline-size: 100%;
+	margin-block: var(--editor-gap);
+	overflow: hidden;
+}
+
+[data-hubble-editor] .ProseMirror td,
+[data-hubble-editor] .ProseMirror th {
+	min-inline-size: 1em;
+	border: 1px solid var(--border);
+	padding: 0.5rem 0.75rem;
+	vertical-align: top;
+	box-sizing: border-box;
+	position: relative;
+}
+
+[data-hubble-editor] .ProseMirror th {
+	background-color: var(--muted);
+	font-weight: 600;
+	text-align: left;
+}
