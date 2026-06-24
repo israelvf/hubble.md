@@ -11,7 +11,9 @@ import MingcuteLayoutLeftLine from "~icons/mingcute/layout-left-line";
 import { fileNameFromPath } from "../lib/filePath";
 import { Button } from "../primitives/button";
 
-const TOOLBAR_INSET = isMac() ? 70 : 8;
+const TOOLBAR_INSET = isMac()
+	? "var(--hubble-traffic-light-inset, 70px)"
+	: "8px";
 const ACTIONS_BASIS = "114px";
 const NO_DRAG_STYLE = {
 	WebkitAppRegion: "no-drag",

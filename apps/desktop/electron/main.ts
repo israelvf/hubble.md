@@ -29,6 +29,14 @@ import {
 	markdownAssetFolderPath,
 	withMarkdownExtension,
 } from "../src/lib/filePath";
+import {
+	loadZoomFactor,
+	resetWindowZoom,
+	setTrafficLightInset,
+	stepWindowZoom,
+	trafficLightPositionForZoom,
+	zoomStep,
+} from "./zoom";
 
 type FileEntry = {
 	path: string;
@@ -616,19 +624,39 @@ function buildMenu() {
 				{ role: "selectAll" },
 			],
 		},
-	];
-
-	if (isDev) {
-		template.push({
+		{
 			label: "View",
 			submenu: [
-				{ role: "reload" },
-				{ role: "forceReload" },
-				{ type: "separator" },
-				{ role: "toggleDevTools" },
+				{
+					id: "zoom-in",
+					label: "Zoom In",
+					accelerator: "CmdOrCtrl+=",
+					click: () => stepWindowZoom(mainWindow, zoomStep),
+				},
+				{
+					id: "zoom-out",
+					label: "Zoom Out",
+					accelerator: "CmdOrCtrl+-",
+					click: () => stepWindowZoom(mainWindow, -zoomStep),
+				},
+				{
+					id: "reset-zoom",
+					label: "Reset Zoom",
+					accelerator: "CmdOrCtrl+0",
+					click: () => resetWindowZoom(mainWindow),
+				},
+				...(isDev
+					? ([
+							{ type: "separator" },
+							{ role: "reload" },
+							{ role: "forceReload" },
+							{ type: "separator" },
+							{ role: "toggleDevTools" },
+						] satisfies Electron.MenuItemConstructorOptions[])
+					: []),
 			],
-		});
-	}
+		},
+	];
 
 	if (process.platform === "darwin") {
 		template.unshift({
@@ -885,6 +913,7 @@ function matchesGlob(relativePath: string, glob: string): boolean {
 
 async function createWindow() {
 	const windowState = await loadWindowState();
+	const zoomFactor = loadZoomFactor();
 	const window = new BrowserWindow({
 		title: appName,
 		...(windowState.x !== undefined && windowState.y !== undefined
@@ -894,7 +923,7 @@ async function createWindow() {
 		height: windowState.height,
 		show: false,
 		titleBarStyle: "hidden",
-		trafficLightPosition: { x: 12, y: 10 },
+		trafficLightPosition: trafficLightPositionForZoom(zoomFactor),
 		webPreferences: {
 			contextIsolation: true,
 			nodeIntegration: false,
@@ -908,7 +937,13 @@ async function createWindow() {
 	} else if (windowState.isMaximized) {
 		window.maximize();
 	}
-	window.once("ready-to-show", () => window.show());
+	// Apply persisted zoom while hidden so the first visible paint is already scaled.
+	window.webContents.once("did-finish-load", async () => {
+		window.webContents.setZoomFactor(zoomFactor);
+		await setTrafficLightInset(window, zoomFactor);
+		if (window.isDestroyed()) return;
+		window.show();
+	});
 
 	window.on("focus", () => sendToRenderer("desktop:window-focus"));
 	window.on("resize", () => queueSaveWindowState(window));

@@ -259,9 +259,6 @@ function App() {
 				if (opening) {
 					requestAnimationFrame(() => focusSidebarNav());
 				}
-			} else if (keymatch(event, "CmdOrCtrl+0")) {
-				event.preventDefault();
-				focusSidebarNav();
 			}
 		};
 		window.addEventListener("keydown", onKeyDown);
