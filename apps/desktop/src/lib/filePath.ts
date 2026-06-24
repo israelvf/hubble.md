@@ -32,8 +32,8 @@ export function hasDocumentExtension(path: string): boolean {
 	return hasMarkdownExtension(path) || hasHtmlExtension(path);
 }
 
-export function isMarkdownAssetFolderName(name: string): boolean {
-	return name.endsWith(".assets");
+export function isHiddenSidebarFolderName(name: string): boolean {
+	return name === ".hubble" || name.endsWith(".assets");
 }
 
 export function withMarkdownExtension(path: string): string {

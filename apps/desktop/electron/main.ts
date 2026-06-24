@@ -27,7 +27,7 @@ import type {
 } from "../src/desktopApi/types";
 import {
 	hasDocumentExtension,
-	isMarkdownAssetFolderName,
+	isHiddenSidebarFolderName,
 	markdownAssetFolderPath,
 	withMarkdownExtension,
 } from "../src/lib/filePath";
@@ -814,7 +814,7 @@ async function collectDocumentFiles(
 		const entryPath = path.join(dir, entry.name);
 		if (isIgnoredByRules(entryPath, rules)) continue;
 		if (entry.isDirectory()) {
-			if (isMarkdownAssetFolderName(entry.name)) continue;
+			if (isHiddenSidebarFolderName(entry.name)) continue;
 			const stat = await fs.stat(entryPath);
 			out.folders.push({
 				path: entryPath,
