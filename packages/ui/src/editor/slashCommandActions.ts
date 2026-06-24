@@ -12,7 +12,8 @@ export type SlashCommandKind =
 	| "taskList"
 	| "blockquote"
 	| "divider"
-	| "strike";
+	| "strike"
+	| "table";
 
 export type SlashToken = {
 	from: number;
@@ -68,6 +69,13 @@ export function applySlashCommand(
 		view.focus();
 		return;
 	}
+
+	if (kind === "table") {
+		const range = { from: token.from, to: token.to };
+		editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+		return;
+	}
+
 	const canConvertInPlace =
 		block?.type.name === "paragraph" &&
 		block.content.size === token.to - token.from;
@@ -174,6 +182,7 @@ function createEmptyBlock(
 		case "divider":
 			return horizontalRule.create();
 		case "strike":
+		case "table":
 			return null;
 	}
 }
