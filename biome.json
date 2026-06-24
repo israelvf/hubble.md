@@ -16,8 +16,6 @@
 			"!**/.claude/skills",
 			"!**/.astro",
 			"!**/*.tsbuildinfo",
-			"!**/src-tauri/target",
-			"!**/src-tauri/gen/schemas",
 			"!**/convex/_generated"
 		]
 	},
@@ -36,6 +34,17 @@
 		}
 	},
 	"overrides": [
+		{
+			"includes": ["**/*.astro"],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"noUnusedImports": "off",
+						"noUnusedVariables": "off"
+					}
+				}
+			}
+		},
 		{
 			"includes": ["**/components/toast.css"],
 			"linter": {

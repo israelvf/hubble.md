@@ -1,26 +1,39 @@
 ---
-interface Props { size?: number; body?: string; eye?: string; class?: string }
-const { size = 48, body = "#c46a48", eye = "#241f1d", class: klass = "" } = Astro.props;
+interface Props {
+	size?: number;
+	body?: string;
+	eye?: string;
+	class?: string;
+}
+const {
+	size = 48,
+	body = "#c46a48",
+	eye = "#241f1d",
+	class: klass = "",
+} = Astro.props;
 // pixel map: b = body, e = eye, . = empty
 const map = [
-  ".............",
-  "..b.......b..",
-  ".bbbbbbbbbbb.",
-  "bbbbbbbbbbbbb",
-  "bbeebbbbbeebb",
-  "bbeebbbbbeebb",
-  "bbbbbbbbbbbbb",
-  "bbbbbbbbbbbbb",
-  ".bbbbbbbbbbb.",
-  "..b.b...b.b..",
-  "..b.b...b.b..",
+	".............",
+	"..b.......b..",
+	".bbbbbbbbbbb.",
+	"bbbbbbbbbbbbb",
+	"bbeebbbbbeebb",
+	"bbeebbbbbeebb",
+	"bbbbbbbbbbbbb",
+	"bbbbbbbbbbbbb",
+	".bbbbbbbbbbb.",
+	"..b.b...b.b..",
+	"..b.b...b.b..",
 ];
-const cols = map[0].length, rows = map.length;
+const cols = map[0].length,
+	rows = map.length;
 const cells: { x: number; y: number; c: string }[] = [];
-map.forEach((row, y) => [...row].forEach((ch, x) => {
-  if (ch === "b") cells.push({ x, y, c: body });
-  else if (ch === "e") cells.push({ x, y, c: eye });
-}));
+map.forEach((row, y) => {
+	[...row].forEach((ch, x) => {
+		if (ch === "b") cells.push({ x, y, c: body });
+		else if (ch === "e") cells.push({ x, y, c: eye });
+	});
+});
 ---
 <svg
   class={klass}
