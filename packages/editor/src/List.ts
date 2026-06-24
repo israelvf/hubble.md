@@ -1,7 +1,7 @@
 import { Extension } from "@tiptap/core";
 import { ListItem } from "@tiptap/extension-list";
 import type { Node as PMNode } from "@tiptap/pm/model";
-import type { EditorState, Transaction } from "@tiptap/pm/state";
+import type { EditorState, Selection, Transaction } from "@tiptap/pm/state";
 import { Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
 import { canJoin } from "@tiptap/pm/transform";
 import { isSelectionAtStartOfNode, nearestSharedParentOfType } from "./utils";
@@ -225,11 +225,28 @@ export const ListToggleExtension = Extension.create({
 	},
 
 	addProseMirrorPlugins() {
-		const key = new PluginKey("ClearTaskItemsForNumberedLists");
+		const clearNumberedListTasksKey = new PluginKey(
+			"ClearTaskItemsForNumberedLists",
+		);
+		const resetSplitTaskItemsKey = new PluginKey("ResetSplitTaskItems");
 
 		return [
 			new Plugin({
-				key,
+				key: resetSplitTaskItemsKey,
+				appendTransaction(
+					transactions: readonly Transaction[],
+					oldState: EditorState,
+					newState: EditorState,
+				) {
+					return resetSplitTaskItemTransaction(
+						transactions,
+						oldState,
+						newState,
+					);
+				},
+			}),
+			new Plugin({
+				key: clearNumberedListTasksKey,
 				appendTransaction(
 					transactions: readonly Transaction[],
 					_oldState: EditorState,
@@ -361,6 +378,53 @@ function isListItem(node: PMNode) {
 
 function isTaskItem(node: PMNode) {
 	return isListItem(node) && node.attrs.checked !== null;
+}
+
+function nearestTaskItemPos(selection: Selection) {
+	const { $from } = selection;
+	for (let depth = $from.depth; depth > 0; depth--) {
+		const node = $from.node(depth);
+		if (isTaskItem(node)) return $from.before(depth);
+	}
+	return null;
+}
+
+function resetSplitTaskItemTransaction(
+	transactions: readonly Transaction[],
+	oldState: EditorState,
+	newState: EditorState,
+) {
+	const hasDocChanges = transactions.some((tr) => tr.docChanged);
+	if (!hasDocChanges) return null;
+
+	const oldTaskItemPos = nearestTaskItemPos(oldState.selection);
+	if (oldTaskItemPos === null) return null;
+
+	const newTaskItemPos = nearestTaskItemPos(newState.selection);
+	if (newTaskItemPos === null) return null;
+
+	// A split leaves the original item at the mapped old position and moves
+	// the selection into the inserted item.
+	const mappedOldTaskItemPos = mapPosition(transactions, oldTaskItemPos);
+	if (newTaskItemPos === mappedOldTaskItemPos) return null;
+
+	const taskItem = newState.doc.nodeAt(newTaskItemPos);
+	if (!taskItem || !isTaskItem(taskItem) || taskItem.attrs.checked !== true) {
+		return null;
+	}
+
+	return newState.tr.setNodeMarkup(newTaskItemPos, undefined, {
+		...taskItem.attrs,
+		checked: false,
+	});
+}
+
+function mapPosition(transactions: readonly Transaction[], pos: number) {
+	let mapped = pos;
+	for (const tr of transactions) {
+		mapped = tr.mapping.map(mapped, -1);
+	}
+	return mapped;
 }
 
 function itemType(node: PMNode): "task" | "item" {
