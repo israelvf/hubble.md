@@ -32,6 +32,7 @@ import {
 	markdownAssetFolderPath,
 	withMarkdownExtension,
 } from "../src/lib/filePath";
+import { setupTerminalIpc } from "./terminal";
 import {
 	loadZoomFactor,
 	resetWindowZoom,
@@ -994,6 +995,8 @@ async function createWindow() {
 }
 
 function registerIpc() {
+	setupTerminalIpc(sendToRenderer);
+
 	ipcMain.handle(
 		"desktop:list-directory",
 		async (_event, { path: dirPath }) => {

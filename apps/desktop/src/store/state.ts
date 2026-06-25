@@ -148,3 +148,4 @@ export const recentWorkspacesStore = workspaceStore.select("recentWorkspaces");
 export const currentPathStore = viewerStore.select("currentPath");
 export const sidebarOpenStore = uiStore.select("sidebarOpen");
 export const switcherOpenStore = uiStore.select("isSwitcherOpen");
+export const terminalOpenStore = uiStore.select("isTerminalOpen");

@@ -1,0 +1,230 @@
+import { useStoreValue } from "@simplestack/store/react";
+import { FitAddon } from "@xterm/addon-fit";
+import { Terminal } from "@xterm/xterm";
+import { useEffect, useRef, useState } from "react";
+import { desktopApi } from "../desktopApi";
+import { cn } from "../lib/utils";
+import { toggleTerminal } from "../store/actions";
+import { terminalOpenStore, workspacePathStore } from "../store/state";
+import "@xterm/xterm/css/xterm.css";
+import MingcuteAddLine from "~icons/mingcute/add-line";
+import MingcuteCloseLine from "~icons/mingcute/close-line";
+
+type Session = {
+	id: string;
+	title: string;
+};
+
+export function TerminalPanel() {
+	const isOpen = useStoreValue(terminalOpenStore);
+	const workspacePath = useStoreValue(workspacePathStore);
+	const [sessions, setSessions] = useState<Session[]>([]);
+	const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+	const isInitializingRef = useRef(false);
+
+	// Create a new session when the panel is opened and there are no sessions
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional
+	useEffect(() => {
+		if (
+			isOpen &&
+			sessions.length === 0 &&
+			workspacePath &&
+			!isInitializingRef.current
+		) {
+			isInitializingRef.current = true;
+			void handleNewSession();
+		}
+	}, [isOpen, sessions.length, workspacePath]);
+
+	const handleNewSession = async () => {
+		if (!workspacePath) return;
+		const sessionId = await desktopApi.terminalStart(workspacePath);
+		setSessions((prev) => [...prev, { id: sessionId, title: `bash` }]);
+		setActiveSessionId(sessionId);
+	};
+
+	const handleCloseSession = async (sessionId: string) => {
+		await desktopApi.terminalStop(sessionId);
+		setSessions((prev) => {
+			const next = prev.filter((s) => s.id !== sessionId);
+			if (activeSessionId === sessionId) {
+				setActiveSessionId(next.length > 0 ? next[next.length - 1].id : null);
+			}
+			if (next.length === 0) {
+				isInitializingRef.current = false;
+			}
+			return next;
+		});
+	};
+
+	return (
+		<div
+			className={cn(
+				"flex flex-col h-64 border-t border-border bg-background z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.05)]",
+				!isOpen && "hidden",
+			)}
+		>
+			{/* Terminal Tabs */}
+			<div className="flex items-center h-9 px-2 border-b border-border bg-muted/30 select-none">
+				<div className="flex-1 flex items-center gap-1 overflow-x-auto no-scrollbar">
+					{sessions.map((session) => (
+						<button
+							type="button"
+							key={session.id}
+							className={cn(
+								"group flex items-center gap-2 px-3 py-1 text-xs rounded-md cursor-pointer transition-colors max-w-32",
+								activeSessionId === session.id
+									? "bg-background text-foreground shadow-sm border border-border"
+									: "text-muted-foreground hover:bg-muted",
+							)}
+							onClick={() => setActiveSessionId(session.id)}
+						>
+							<span className="truncate flex-1">{session.title}</span>
+							<button
+								type="button"
+								className={cn(
+									"p-0.5 rounded-sm hover:bg-muted-foreground/20 opacity-0 group-hover:opacity-100 transition-opacity",
+									activeSessionId === session.id && "opacity-100",
+								)}
+								onClick={(e) => {
+									e.stopPropagation();
+									void handleCloseSession(session.id);
+								}}
+							>
+								<MingcuteCloseLine className="w-3 h-3" />
+							</button>
+						</button>
+					))}
+					<button
+						type="button"
+						className="p-1 ml-1 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+						onClick={handleNewSession}
+						title="New Terminal"
+					>
+						<MingcuteAddLine className="w-4 h-4" />
+					</button>
+				</div>
+				<div className="flex items-center gap-2 pl-4">
+					<button
+						type="button"
+						className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+						onClick={toggleTerminal}
+						title="Close Terminal Panel"
+					>
+						<MingcuteCloseLine className="w-4 h-4" />
+					</button>
+				</div>
+			</div>
+
+			{/* Terminal Viewports */}
+			<div className="flex-1 relative overflow-hidden bg-background p-2 pb-0">
+				{sessions.map((session) => (
+					<div
+						key={session.id}
+						className={cn(
+							"absolute inset-2",
+							activeSessionId === session.id
+								? "z-10 opacity-100"
+								: "z-0 opacity-0 pointer-events-none",
+						)}
+					>
+						<TerminalInstance
+							sessionId={session.id}
+							isActive={activeSessionId === session.id}
+						/>
+					</div>
+				))}
+				{sessions.length === 0 && (
+					<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+						No active terminal sessions.
+					</div>
+				)}
+			</div>
+		</div>
+	);
+}
+
+function TerminalInstance({
+	sessionId,
+	isActive,
+}: {
+	sessionId: string;
+	isActive: boolean;
+}) {
+	const containerRef = useRef<HTMLDivElement>(null);
+	const termRef = useRef<Terminal | null>(null);
+	const fitAddonRef = useRef<FitAddon | null>(null);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional
+	useEffect(() => {
+		if (!containerRef.current) return;
+
+		const term = new Terminal({
+			fontFamily: "var(--font-mono)",
+			fontSize: 13,
+			theme: {
+				background: "transparent",
+				foreground: "#ececec",
+				cursor: "#ececec",
+			},
+			cursorBlink: true,
+		});
+
+		const fitAddon = new FitAddon();
+		term.loadAddon(fitAddon);
+		term.open(containerRef.current);
+
+		termRef.current = term;
+		fitAddonRef.current = fitAddon;
+
+		term.onData((data) => {
+			void desktopApi.terminalWrite(sessionId, data);
+		});
+
+		term.onResize(({ cols, rows }) => {
+			void desktopApi.terminalResize(sessionId, cols, rows);
+		});
+
+		const unsubscribeData = desktopApi.onTerminalData(sessionId, (data) => {
+			term.write(data);
+		});
+
+		const resizeObserver = new ResizeObserver(() => {
+			if (isActive && containerRef.current?.offsetParent !== null) {
+				try {
+					fitAddon.fit();
+				} catch {
+					// Fit might throw if container is hidden/0px
+				}
+			}
+		});
+
+		resizeObserver.observe(containerRef.current);
+
+		// Initial fit
+		setTimeout(() => fitAddon.fit(), 50);
+
+		return () => {
+			unsubscribeData();
+			resizeObserver.disconnect();
+			term.dispose();
+		};
+	}, [sessionId]); // Important: Do NOT include isActive here, we don't want to re-mount xterm
+
+	useEffect(() => {
+		if (
+			isActive &&
+			fitAddonRef.current &&
+			containerRef.current?.offsetParent !== null
+		) {
+			try {
+				fitAddonRef.current.fit();
+				termRef.current?.focus();
+			} catch {
+				//
+			}
+		}
+	}, [isActive]);
+
+	return <div ref={containerRef} className="w-full h-full" />;
+}

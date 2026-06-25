@@ -15,6 +15,7 @@ type DocumentState = ReturnType<typeof emptyDoc>;
 type UiState = {
 	sidebarOpen: boolean;
 	isSwitcherOpen: boolean;
+	isTerminalOpen: boolean;
 };
 
 export type DesktopState = {
@@ -31,7 +32,7 @@ type Persisted = {
 		sortMode?: SortMode;
 	};
 	document?: { lastOpenedPath?: string | null };
-	ui?: { sidebarOpen?: boolean };
+	ui?: { sidebarOpen?: boolean; isTerminalOpen?: boolean };
 };
 
 export const STORAGE_KEY = "hubble-desktop-app";
@@ -72,7 +73,11 @@ export function getInitialState(): DesktopState {
 	return {
 		workspace: hydrateWorkspace(p?.workspace),
 		document: emptyDoc(p?.document?.lastOpenedPath ?? null),
-		ui: { sidebarOpen: p?.ui?.sidebarOpen ?? false, isSwitcherOpen: false },
+		ui: {
+			sidebarOpen: p?.ui?.sidebarOpen ?? false,
+			isSwitcherOpen: false,
+			isTerminalOpen: p?.ui?.isTerminalOpen ?? false,
+		},
 	};
 }
 
@@ -89,6 +94,7 @@ export function serialize(state: DesktopState): Persisted {
 		},
 		ui: {
 			sidebarOpen: state.ui.sidebarOpen,
+			isTerminalOpen: state.ui.isTerminalOpen,
 		},
 	};
 }

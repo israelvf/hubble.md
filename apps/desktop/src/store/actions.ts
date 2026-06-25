@@ -37,6 +37,7 @@ import {
 	type SortMode,
 	sidebarOpenStore,
 	switcherOpenStore,
+	uiStore,
 	viewerStore,
 	withOpenedDoc,
 	workspaceStore,
@@ -316,6 +317,14 @@ export function setSidebarOpen(isOpen: boolean) {
 
 export function toggleSidebar() {
 	sidebarOpenStore.set((open) => !open);
+}
+
+export function setTerminalOpen(isOpen: boolean) {
+	uiStore.select("isTerminalOpen").set(isOpen);
+}
+
+export function toggleTerminal() {
+	uiStore.select("isTerminalOpen").set((open) => !open);
 }
 
 export function clearViewer() {

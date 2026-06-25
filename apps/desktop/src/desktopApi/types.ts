@@ -122,4 +122,15 @@ export type DesktopApi = {
 	onMenuSyncWorkspace(callback: () => void): Unsubscribe;
 	onWindowFocus(callback: () => void): Unsubscribe;
 	onFullScreenChange(callback: (isFullScreen: boolean) => void): Unsubscribe;
+
+	// Terminal
+	terminalStart(cwd: string): Promise<string>;
+	terminalWrite(sessionId: string, data: string): Promise<void>;
+	terminalResize(sessionId: string, cols: number, rows: number): Promise<void>;
+	terminalStop(sessionId: string): Promise<void>;
+	onTerminalData(
+		sessionId: string,
+		callback: (data: string) => void,
+	): Unsubscribe;
+	onTerminalExit(sessionId: string, callback: () => void): Unsubscribe;
 };
