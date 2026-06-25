@@ -20,7 +20,33 @@ export function TerminalPanel() {
 	const workspacePath = useStoreValue(workspacePathStore);
 	const [sessions, setSessions] = useState<Session[]>([]);
 	const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+	const [height, setHeight] = useState(256);
 	const isInitializingRef = useRef(false);
+	const isDraggingRef = useRef(false);
+
+	useEffect(() => {
+		const handleMouseMove = (e: MouseEvent) => {
+			if (!isDraggingRef.current) return;
+			const newHeight = Math.max(
+				100,
+				Math.min(window.innerHeight - 100, window.innerHeight - e.clientY),
+			);
+			setHeight(newHeight);
+		};
+		const handleMouseUp = () => {
+			if (isDraggingRef.current) {
+				isDraggingRef.current = false;
+				document.body.style.cursor = "";
+			}
+		};
+
+		window.addEventListener("mousemove", handleMouseMove);
+		window.addEventListener("mouseup", handleMouseUp);
+		return () => {
+			window.removeEventListener("mousemove", handleMouseMove);
+			window.removeEventListener("mouseup", handleMouseUp);
+		};
+	}, []);
 
 	// Create a new session when the panel is opened and there are no sessions
 	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional
@@ -59,11 +85,21 @@ export function TerminalPanel() {
 
 	return (
 		<div
+			style={{ height: isOpen ? height : undefined }}
 			className={cn(
-				"flex flex-col h-64 border-t border-border bg-background z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.05)]",
+				"flex flex-col border-t border-border bg-background z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] relative",
 				!isOpen && "hidden",
 			)}
 		>
+			{/* Resizer Handle */}
+			<div
+				className="absolute -top-1 left-0 right-0 h-2 cursor-row-resize z-30 hover:bg-ring/30 transition-colors"
+				onMouseDown={(e) => {
+					e.preventDefault();
+					isDraggingRef.current = true;
+					document.body.style.cursor = "row-resize";
+				}}
+			/>
 			{/* Terminal Tabs */}
 			<div className="flex items-center h-9 px-2 border-b border-border bg-muted/30 select-none">
 				<div className="flex-1 flex items-center gap-1 overflow-x-auto no-scrollbar">
