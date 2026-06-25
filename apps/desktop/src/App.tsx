@@ -377,45 +377,47 @@ function App() {
 						) : undefined
 					}
 				/>
-				<section className="flex-1 overflow-hidden" aria-live="polite">
-					{state.status === "loading" && <p>Loading…</p>}
-					{state.status === "error" && (
-						<p>{state.error ?? "Failed to open file."}</p>
-					)}
-					{state.status !== "loading" &&
-						state.status !== "error" &&
-						!state.currentPath && (
-							<div className="flex h-full items-center justify-center p-6">
-								{hasWorkspace ? (
-									<Button onClick={() => void openFilePicker()}>
-										Open file
-									</Button>
-								) : (
-									<WelcomeScreen
-										onCreateFolder={() => void createWorkspaceWithSidebar()}
-										onOpenFolder={() => void openWorkspaceWithSidebar()}
+				<section className="flex-1 flex flex-col overflow-hidden" aria-live="polite">
+					<div className="flex-1 min-h-0 relative">
+						{state.status === "loading" && <p>Loading…</p>}
+						{state.status === "error" && (
+							<p>{state.error ?? "Failed to open file."}</p>
+						)}
+						{state.status !== "loading" &&
+							state.status !== "error" &&
+							!state.currentPath && (
+								<div className="flex h-full items-center justify-center p-6">
+									{hasWorkspace ? (
+										<Button onClick={() => void openFilePicker()}>
+											Open file
+										</Button>
+									) : (
+										<WelcomeScreen
+											onCreateFolder={() => void createWorkspaceWithSidebar()}
+											onOpenFolder={() => void openWorkspaceWithSidebar()}
+										/>
+									)}
+								</div>
+							)}
+						{state.status === "ready" && state.currentPath && (
+							<div className="flex h-full min-h-0 flex-col">
+								{state.externalChange.kind === "conflict" && (
+									<ExternalChangeBanner
+										onKeepMyEdits={() => void forceKeepLocalEdits()}
+										onReloadFromDisk={reloadFromDiskConflict}
 									/>
 								)}
+								<DocumentViewer
+									path={state.currentPath}
+									content={state.content}
+									onScrollContainerChange={setScrollContainerEl}
+								/>
 							</div>
 						)}
-					{state.status === "ready" && state.currentPath && (
-						<div className="flex h-full min-h-0 flex-col">
-							{state.externalChange.kind === "conflict" && (
-								<ExternalChangeBanner
-									onKeepMyEdits={() => void forceKeepLocalEdits()}
-									onReloadFromDisk={reloadFromDiskConflict}
-								/>
-							)}
-							<DocumentViewer
-								path={state.currentPath}
-								content={state.content}
-								onScrollContainerChange={setScrollContainerEl}
-							/>
-						</div>
-					)}
+					</div>
+					<TerminalPanel />
 				</section>
 			</div>
-			<TerminalPanel />
 			<SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen}>
 				{updateState ? (
 					<UpdatesSection
