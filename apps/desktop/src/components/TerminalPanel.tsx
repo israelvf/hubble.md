@@ -4,7 +4,7 @@ import { Terminal } from "@xterm/xterm";
 import { useEffect, useRef, useState } from "react";
 import { desktopApi } from "../desktopApi";
 import { cn } from "../lib/utils";
-import { toggleTerminal } from "../store/actions";
+import { setTerminalOpen, toggleTerminal } from "../store/actions";
 import { terminalOpenStore, workspacePathStore } from "../store/state";
 import "@xterm/xterm/css/xterm.css";
 import MingcuteAddLine from "~icons/mingcute/add-line";
@@ -78,6 +78,7 @@ export function TerminalPanel() {
 			}
 			if (next.length === 0) {
 				isInitializingRef.current = false;
+				queueMicrotask(() => setTerminalOpen(false));
 			}
 			return next;
 		});
