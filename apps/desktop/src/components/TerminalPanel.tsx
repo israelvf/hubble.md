@@ -307,22 +307,28 @@ function TerminalInstance({
 			term.write(data);
 		});
 
+		let fitTimeout: ReturnType<typeof setTimeout>;
 		const resizeObserver = new ResizeObserver(() => {
 			if (isActive && containerRef.current?.offsetParent !== null) {
-				try {
-					fitAddon.fit();
-				} catch {
-					// Fit might throw if container is hidden/0px
-				}
+				clearTimeout(fitTimeout);
+				fitTimeout = setTimeout(() => {
+					try {
+						fitAddon.fit();
+					} catch {
+						// Fit might throw if container is hidden/0px
+					}
+				}, 50);
 			}
 		});
 
 		resizeObserver.observe(containerRef.current);
 
 		// Initial fit
-		setTimeout(() => fitAddon.fit(), 50);
+		// ResizeObserver will handle the initial fit
+
 
 		return () => {
+			clearTimeout(fitTimeout);
 			unsubscribeData();
 			resizeObserver.disconnect();
 			themeObserver.disconnect();
