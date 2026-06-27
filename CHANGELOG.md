@@ -9,8 +9,6 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com).
 
 ### Added
 - Windows desktop builds (NSIS installer)
-- Linux desktop builds (AppImage and Debian package)
-- Native window controls (minimize, maximize, close) on Windows and Linux
 
 ### Changed
 
@@ -19,6 +17,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com).
 - Creating files/folders and revealing them in the file manager now work on Windows (paths are no longer doubled)
 
 ## [0.1.14] - 2026-06-25
+
+### Added
+
+- Linux desktop builds (AppImage and Debian package)
+- Native window controls (minimize, maximize, close) on Windows and Linux
 
 ### Fixed
 - Creating or renaming nested sidebar folders now keeps the folder tree in the expected shape
