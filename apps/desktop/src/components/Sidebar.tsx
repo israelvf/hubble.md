@@ -15,7 +15,7 @@ import {
 	deleteFolder,
 	deleteMarkdownFile,
 	loadPath,
-	moveSidebarItem,
+	moveSidebarItems,
 	openWorkspace,
 	renameFolder,
 	renameMarkdownFile,
@@ -142,8 +142,8 @@ export function Sidebar({
 				createFolderInFolder(absolutePath(folderId))
 			}
 			onDeleteFolder={(folderId) => void deleteFolder(absolutePath(folderId))}
-			onMoveItem={({ item, targetFolderId }) =>
-				void moveSidebarItem(item, absolutePath(targetFolderId))
+			onMoveItem={({ items, targetFolderId }) =>
+				void moveSidebarItems(items, absolutePath(targetFolderId))
 			}
 		/>
 	);

@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com).
 
 ### Added
 - Find text in the editor with highlighted matches and next/previous navigation
+- Sidebar rows can now be multi-selected and moved together
 
 ### Changed
 

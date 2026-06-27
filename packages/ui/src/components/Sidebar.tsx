@@ -58,8 +58,12 @@ import {
 
 export type { SidebarFile, SidebarFolder, SidebarSortMode };
 
+export type SidebarMoveItem =
+	| { kind: "file"; path: string }
+	| { kind: "folder"; folderId: string };
+
 export type SidebarMoveItemInput = {
-	item: { kind: "file"; path: string } | { kind: "folder"; folderId: string };
+	items: SidebarMoveItem[];
 	targetFolderId: string | null;
 };
 
@@ -76,6 +80,196 @@ type RenameItem =
 			displayPath: string;
 			parentDisplayPath: string;
 	  };
+
+type SidebarSelectableRow = Extract<SidebarRow, { kind: "file" | "folder" }>;
+
+export type SidebarSelectionState = {
+	selectedKeys: Set<string>;
+	anchorKey: string | null;
+};
+
+export type SidebarSelectionMode =
+	// plain click: select only this row
+	| "replace"
+	// cmd/ctrl click: add or remove this row from the selection
+	| "toggle"
+	// shift click: select every row between the anchor and this row
+	| "range";
+
+export type SidebarMoveCandidate =
+	| {
+			kind: "file";
+			path: string;
+			key: string;
+			parentFolderId: string | null;
+	  }
+	| {
+			kind: "folder";
+			folderId: string;
+			key: string;
+			parentFolderId: string | null;
+	  };
+
+export function sidebarRowKey(row: SidebarRow): string | null {
+	if (row.kind === "section") return null;
+	return row.kind === "file" ? `file:${row.file.path}` : `folder:${row.id}`;
+}
+
+export function applySidebarSelection({
+	anchorKey,
+	mode,
+	rows,
+	selectedKeys,
+	targetKey,
+}: {
+	anchorKey: string | null;
+	mode: SidebarSelectionMode;
+	rows: SidebarRow[];
+	selectedKeys: Set<string>;
+	targetKey: string | null;
+}): SidebarSelectionState {
+	const rowKeys = rows.map(sidebarRowKey);
+	const selectableKeys = new Set(rowKeys.filter((key) => key !== null));
+	if (!targetKey || !selectableKeys.has(targetKey)) {
+		return { selectedKeys, anchorKey };
+	}
+	if (mode === "replace") {
+		return { selectedKeys: new Set([targetKey]), anchorKey: targetKey };
+	}
+	if (mode === "toggle") {
+		const next = new Set(selectedKeys);
+		if (next.has(targetKey)) next.delete(targetKey);
+		else next.add(targetKey);
+		return { selectedKeys: next, anchorKey: targetKey };
+	}
+
+	const anchorIndex = anchorKey ? rowKeys.indexOf(anchorKey) : -1;
+	const targetIndex = rowKeys.indexOf(targetKey);
+	if (anchorIndex < 0 || targetIndex < 0) {
+		return { selectedKeys: new Set([targetKey]), anchorKey: targetKey };
+	}
+	const [start, end] =
+		anchorIndex < targetIndex
+			? [anchorIndex, targetIndex]
+			: [targetIndex, anchorIndex];
+	return {
+		selectedKeys: new Set(
+			rowKeys.slice(start, end + 1).filter((key) => key !== null),
+		),
+		anchorKey,
+	};
+}
+
+function pruneSidebarSelection(
+	selection: SidebarSelectionState,
+	rows: SidebarRow[],
+): SidebarSelectionState {
+	const validKeys = new Set(
+		rows.map(sidebarRowKey).filter((key) => key !== null),
+	);
+	const nextKeys = new Set(
+		[...selection.selectedKeys].filter((key) => validKeys.has(key)),
+	);
+	const nextAnchor =
+		selection.anchorKey && validKeys.has(selection.anchorKey)
+			? selection.anchorKey
+			: null;
+	if (
+		nextAnchor === selection.anchorKey &&
+		nextKeys.size === selection.selectedKeys.size &&
+		[...nextKeys].every((key) => selection.selectedKeys.has(key))
+	) {
+		return selection;
+	}
+	return { selectedKeys: nextKeys, anchorKey: nextAnchor };
+}
+
+export function sidebarMoveCandidateFromRow(
+	row: SidebarRow,
+	getDisplayPath: (path: string) => string,
+): SidebarMoveCandidate | null {
+	const key = sidebarRowKey(row);
+	if (!key || row.kind === "section") return null;
+	return row.kind === "file"
+		? {
+				kind: "file",
+				path: row.file.path,
+				key,
+				// folderIds live in the display-path namespace, but file rows
+				// carry an absolute disk path, so map it back to a display path
+				// before deriving the parent folderId.
+				parentFolderId: folderIdFromDisplayPath(getDisplayPath(row.file.path)),
+			}
+		: {
+				kind: "folder",
+				folderId: row.id,
+				key,
+				parentFolderId: parentFolderId(row.id),
+			};
+}
+
+function sidebarMoveItemFromCandidate(
+	candidate: SidebarMoveCandidate,
+): SidebarMoveItem {
+	return candidate.kind === "file"
+		? { kind: "file", path: candidate.path }
+		: { kind: "folder", folderId: candidate.folderId };
+}
+
+export function sidebarMoveItemsForDrag({
+	draggedItem,
+	getDisplayPath,
+	rows,
+	selectedKeys,
+	targetFolderId,
+}: {
+	draggedItem: SidebarMoveCandidate;
+	getDisplayPath: (path: string) => string;
+	rows: SidebarRow[];
+	selectedKeys: Set<string>;
+	targetFolderId: string | null;
+}): SidebarMoveItem[] {
+	const selectedCandidates = selectedKeys.has(draggedItem.key)
+		? rows
+				.map((row) => sidebarMoveCandidateFromRow(row, getDisplayPath))
+				.filter(
+					(candidate): candidate is SidebarMoveCandidate =>
+						candidate !== null && selectedKeys.has(candidate.key),
+				)
+		: [draggedItem];
+	const validCandidates = selectedCandidates.filter(
+		(candidate) => !isInvalidMove(candidate, targetFolderId),
+	);
+	return removeDescendantMoveCandidates(validCandidates).map(
+		sidebarMoveItemFromCandidate,
+	);
+}
+
+function removeDescendantMoveCandidates(
+	candidates: SidebarMoveCandidate[],
+): SidebarMoveCandidate[] {
+	// A moving folder already carries its descendants on disk.
+	const selectedFolderIds = candidates
+		.filter(
+			(
+				candidate,
+			): candidate is Extract<SidebarMoveCandidate, { kind: "folder" }> =>
+				candidate.kind === "folder",
+		)
+		.map((candidate) => candidate.folderId);
+	return candidates.filter((candidate) => {
+		if (candidate.kind === "folder") {
+			return !selectedFolderIds.some(
+				(folderId) =>
+					folderId !== candidate.folderId &&
+					candidate.folderId.startsWith(folderId),
+			);
+		}
+		return !selectedFolderIds.some((folderId) =>
+			candidate.parentFolderId?.startsWith(folderId),
+		);
+	});
+}
 
 const sidebarActionClass =
 	"flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-start text-[11px] font-normal outline-hidden select-none";
@@ -198,6 +392,7 @@ export function Sidebar({
 		string | null
 	>(null);
 	const [activeDragLabel, setActiveDragLabel] = useState<string | null>(null);
+	const [activeDragKeys, setActiveDragKeys] = useState<Set<string>>(new Set());
 	const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
 	const highlightPath = pendingPath ?? currentPath;
 	const uncompactFolderId =
@@ -211,6 +406,11 @@ export function Sidebar({
 		storageScope,
 		uncompactFolderId,
 	});
+	const [selection, setSelection] = useState<SidebarSelectionState>({
+		selectedKeys: new Set(),
+		anchorKey: null,
+	});
+	const selectedKeys = selection.selectedKeys;
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
 	);
@@ -281,6 +481,39 @@ export function Sidebar({
 		},
 		[onSelectFile, toggleFolder],
 	);
+	const updateSelection = useCallback(
+		(row: SidebarRow, mode: SidebarSelectionMode) => {
+			const targetKey = sidebarRowKey(row);
+			setSelection((current) =>
+				applySidebarSelection({
+					anchorKey: current.anchorKey,
+					mode,
+					rows,
+					selectedKeys: current.selectedKeys,
+					targetKey,
+				}),
+			);
+		},
+		[rows],
+	);
+	const handleRowClick = useCallback(
+		(row: SidebarSelectableRow, event: React.MouseEvent<HTMLButtonElement>) => {
+			const mode: SidebarSelectionMode = event.shiftKey
+				? "range"
+				: event.metaKey || event.ctrlKey
+					? "toggle"
+					: "replace";
+			updateSelection(row, mode);
+			if (mode !== "replace") {
+				event.preventDefault();
+				return;
+			}
+			if (row.kind === "file" && event.detail > 1) return;
+			activateRow(row);
+			requestAnimationFrame(() => navRef.current?.focus());
+		},
+		[activateRow, updateSelection],
+	);
 	const enterRowEdit = useCallback(
 		(row: SidebarRow) => {
 			if (row.kind === "file" && onRenameFile)
@@ -350,29 +583,47 @@ export function Sidebar({
 		setPendingFocusDisplayPath(null);
 	}, [getDisplayPath, pendingFocusDisplayPath, rows, setFocusedIndex]);
 
-	const handleDragStart = useCallback((event: DragStartEvent) => {
-		const data = event.active.data.current as DragItemData | undefined;
-		setActiveDragLabel(data?.label ?? null);
-	}, []);
+	useEffect(() => {
+		setSelection((current) => pruneSidebarSelection(current, rows));
+	}, [rows]);
+
+	const handleDragStart = useCallback(
+		(event: DragStartEvent) => {
+			const data = event.active.data.current as DragItemData | undefined;
+			setActiveDragLabel(data?.label ?? null);
+			setActiveDragKeys(
+				data
+					? new Set(selectedKeys.has(data.key) ? selectedKeys : [data.key])
+					: new Set(),
+			);
+		},
+		[selectedKeys],
+	);
 	const handleDragEnd = useCallback(
 		(event: DragEndEvent) => {
 			setActiveDragLabel(null);
+			setActiveDragKeys(new Set());
 			setDropTarget(null);
 			if (!onMoveItem || !event.over) return;
 			const item = event.active.data.current as DragItemData | undefined;
 			const target = event.over.data.current as DropTargetData | undefined;
 			if (!item || !target) return;
 			const targetFolderId = target.folderId;
-			if (isInvalidMove(item, targetFolderId)) return;
-			void onMoveItem({
-				item:
-					item.kind === "file"
-						? { kind: "file", path: item.path }
-						: { kind: "folder", folderId: item.folderId },
+			const items = sidebarMoveItemsForDrag({
+				draggedItem: item,
+				getDisplayPath,
+				rows,
+				selectedKeys,
 				targetFolderId,
 			});
+			if (items.length === 0) return;
+			void onMoveItem({
+				items,
+				targetFolderId,
+			});
+			setSelection({ selectedKeys: new Set(), anchorKey: null });
 		},
-		[onMoveItem],
+		[getDisplayPath, onMoveItem, rows, selectedKeys],
 	);
 	const handleDragOver = useCallback((event: DragOverEvent) => {
 		const target = event.over?.data.current as DropTargetData | undefined;
@@ -524,6 +775,7 @@ export function Sidebar({
 			onDragEnd={handleDragEnd}
 			onDragCancel={() => {
 				setActiveDragLabel(null);
+				setActiveDragKeys(new Set());
 				setDropTarget(null);
 			}}
 		>
@@ -537,6 +789,8 @@ export function Sidebar({
 					const isActive =
 						row.kind === "file" && row.file.path === highlightPath;
 					const isFocused = focusedIndex === index;
+					const rowKey = sidebarRowKey(row);
+					const isSelected = rowKey ? selectedKeys.has(rowKey) : false;
 					const isRenaming =
 						(row.kind === "file" &&
 							renamingItem?.kind === "file" &&
@@ -584,6 +838,10 @@ export function Sidebar({
 								rows,
 							})
 						: null;
+					const selectionGroup =
+						isSelected && !dropGroup
+							? rowSelectionGroup({ index, rows, selectedKeys })
+							: null;
 					return (
 						<DraggableSidebarRow
 							key={row.kind === "folder" ? row.id : row.file.path}
@@ -600,10 +858,12 @@ export function Sidebar({
 									aria-expanded={
 										row.kind === "folder" ? row.expanded : undefined
 									}
-									aria-selected={isActive}
+									aria-selected={isSelected || isActive}
+									data-selected={isSelected ? "true" : undefined}
 									className={cn(
 										"group/sidebar-row relative flex w-full items-center text-sidebar-foreground",
-										!isActive && isFocused && "bg-accent",
+										!isActive && isSelected && "bg-selected/60",
+										!isActive && !isSelected && isFocused && "bg-accent",
 										isActive &&
 											"bg-sidebar-accent text-sidebar-accent-foreground font-medium",
 										dropGroup
@@ -614,10 +874,22 @@ export function Sidebar({
 													dropGroup.end &&
 														"rounded-ee-[var(--radius-row)] rounded-es-[var(--radius-row)]",
 												]
-											: "rounded-[var(--radius-row)]",
+											: // Round only the outer corners of a contiguous
+												// multi-select run so adjacent rows look like one block
+												selectionGroup
+												? [
+														selectionGroup.start &&
+															"rounded-se-[var(--radius-row)] rounded-ss-[var(--radius-row)]",
+														selectionGroup.end &&
+															"rounded-ee-[var(--radius-row)] rounded-es-[var(--radius-row)]",
+													]
+												: "rounded-[var(--radius-row)]",
 										isRenaming && "relative z-30",
 										isPinnedSectionEnd && "mb-3",
-										activeDragLabel && isActive && !dropGroup && "grayscale",
+										rowKey &&
+											activeDragKeys.has(rowKey) &&
+											!dropGroup &&
+											"grayscale",
 										isDragging && "opacity-50",
 									)}
 									onPointerEnter={() => setFocusedIndex(index)}
@@ -691,11 +963,7 @@ export function Sidebar({
 												"truncate border-none bg-transparent",
 											)}
 											style={rowStyle}
-											onClick={(event) => {
-												if (row.kind === "file" && event.detail > 1) return;
-												activateRow(row);
-												requestAnimationFrame(() => navRef.current?.focus());
-											}}
+											onClick={(event) => handleRowClick(row, event)}
 											onDoubleClick={(event) => {
 												if (row.kind !== "file" || !onRenameFile) return;
 												event.preventDefault();
@@ -917,14 +1185,7 @@ export function Sidebar({
 	);
 }
 
-type DragItemData =
-	| { kind: "file"; path: string; parentFolderId: string | null; label: string }
-	| {
-			kind: "folder";
-			folderId: string;
-			parentFolderId: string | null;
-			label: string;
-	  };
+type DragItemData = SidebarMoveCandidate & { label: string };
 
 type DropTargetData = {
 	folderId: string | null;
@@ -949,22 +1210,11 @@ function DraggableSidebarRow({
 	getDisplayPath: (path: string) => string;
 	row: Extract<SidebarRow, { kind: "file" | "folder" }>;
 }) {
-	const data: DragItemData =
-		row.kind === "file"
-			? {
-					kind: "file",
-					path: row.file.path,
-					parentFolderId: folderIdFromDisplayPath(
-						getDisplayPath(row.file.path),
-					),
-					label: row.label,
-				}
-			: {
-					kind: "folder",
-					folderId: row.id,
-					parentFolderId: parentFolderId(row.id),
-					label: row.label,
-				};
+	const candidate = sidebarMoveCandidateFromRow(
+		row,
+		getDisplayPath,
+	) as SidebarMoveCandidate;
+	const data = { ...candidate, label: row.label } satisfies DragItemData;
 	const draggable = useDraggable({
 		id: `sidebar-drag:${row.kind}:${row.kind === "file" ? row.file.path : row.id}`,
 		data,
@@ -1100,6 +1350,7 @@ function FolderSegment({
 		data: {
 			kind: "folder",
 			folderId: segment.id,
+			key: `folder:${segment.id}`,
 			parentFolderId: parentFolderId(segment.id),
 			label: segment.name,
 		} satisfies DragItemData,
@@ -1196,6 +1447,26 @@ function rowDropGroup({
 	};
 }
 
+function rowSelectionGroup({
+	index,
+	rows,
+	selectedKeys,
+}: {
+	index: number;
+	rows: SidebarRow[];
+	selectedKeys: Set<string>;
+}) {
+	const inSelection = (row: SidebarRow | null) => {
+		const key = row ? sidebarRowKey(row) : null;
+		return key ? selectedKeys.has(key) : false;
+	};
+	if (!inSelection(rows[index])) return null;
+	return {
+		start: !inSelection(previousSidebarItem(rows, index)),
+		end: !inSelection(nextSidebarItem(rows, index)),
+	};
+}
+
 function previousSidebarItem(rows: SidebarRow[], index: number) {
 	for (let cursor = index - 1; cursor >= 0; cursor--) {
 		const row = rows[cursor];
@@ -1225,7 +1496,10 @@ function rowInFolderDropTarget(
 	return row.id === folderId || row.id.startsWith(folderId);
 }
 
-function isInvalidMove(item: DragItemData, targetFolderId: string | null) {
+function isInvalidMove(
+	item: SidebarMoveCandidate,
+	targetFolderId: string | null,
+) {
 	if (item.parentFolderId === targetFolderId) return true;
 	if (item.kind === "file") return false;
 	if (item.folderId === targetFolderId) return true;

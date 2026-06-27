@@ -5,6 +5,7 @@ export {
 	type SidebarFocusedItem,
 	type SidebarFolder,
 	SidebarFrame,
+	type SidebarMoveItem,
 	type SidebarMoveItemInput,
 	type SidebarSortMode,
 } from "./components/Sidebar";

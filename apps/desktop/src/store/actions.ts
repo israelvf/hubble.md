@@ -770,6 +770,15 @@ export async function moveSidebarItem(
 	}
 }
 
+export async function moveSidebarItems(
+	items: SidebarMoveItem[],
+	targetFolderPath: string,
+) {
+	for (const item of items) {
+		await moveSidebarItem(item, targetFolderPath);
+	}
+}
+
 export async function createMarkdownFileInFolder(parentPath: string) {
 	const path = uniqueMarkdownPath(parentPath);
 	try {
