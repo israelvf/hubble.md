@@ -88,7 +88,13 @@ export type SidebarSelectionState = {
 	anchorKey: string | null;
 };
 
-export type SidebarSelectionMode = "replace" | "toggle" | "range";
+export type SidebarSelectionMode =
+	// plain click: select only this row
+	| "replace"
+	// cmd/ctrl click: add or remove this row from the selection
+	| "toggle"
+	// shift click: select every row between the anchor and this row
+	| "range";
 
 export type SidebarMoveCandidate =
 	| {
@@ -189,6 +195,9 @@ export function sidebarMoveCandidateFromRow(
 				kind: "file",
 				path: row.file.path,
 				key,
+				// folderIds live in the display-path namespace, but file rows
+				// carry an absolute disk path, so map it back to a display path
+				// before deriving the parent folderId.
 				parentFolderId: folderIdFromDisplayPath(getDisplayPath(row.file.path)),
 			}
 		: {
