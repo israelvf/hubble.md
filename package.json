@@ -2,6 +2,7 @@
 	"name": "hubble-md",
 	"private": true,
 	"version": "0.0.0",
+	"packageManager": "pnpm@11.9.0",
 	"description": "Hubble.md monorepo",
 	"license": "MIT",
 	"author": "Ben Holmes <hey@bholmes.dev>",

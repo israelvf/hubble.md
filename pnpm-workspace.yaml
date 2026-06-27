@@ -13,3 +13,9 @@ onlyBuiltDependencies:
   - esbuild
   - msw
   - sharp
+
+allowBuilds:
+  electron-winstaller: true
+  esbuild: true
+  msw: true
+  sharp: true
